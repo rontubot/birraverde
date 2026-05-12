@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servicios | Birraverde</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="noise"></div>
+
+    <nav>
+        <div class="container">
+            <a href="index.html" class="logo">Birraverde</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="servicios.html" style="color: var(--primary);">Servicios</a></li>
+                <li><a href="sello.html">Sello</a></li>
+                <li><a href="booking.html" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Reservar Sala</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="section">
+        <div class="container">
+            <div style="text-align: center; max-width: 800px; margin: 0 auto 5rem auto;">
+                <h1 class="reveal" style="font-size: 4rem; margin-bottom: 1.5rem;">Nuestros Servicios</h1>
+                <p class="reveal" style="color: var(--text-muted); font-size: 1.2rem;">Soluciones integrales de producción audiovisual y branding para el mercado musical moderno.</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8rem;">
+                <!-- Service 1 -->
+                <div class="reveal" style="display: flex; gap: 4rem; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <div class="placeholder-img" style="aspect-ratio: 16/9; background: var(--glass); border-radius: 24px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px dashed var(--glass-border);">[IMAGE: VIDEO_CLIP_DETAILED]</div>
+                    </div>
+                    <div style="flex: 1; min-width: 300px;">
+                        <span class="hero-tagline">Visuals</span>
+                        <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Producción de Video Clips</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 2rem;">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                        <ul style="color: var(--text-muted); list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li>✅ Dirección y Guion</li>
+                            <li>✅ Edición y Post-producción</li>
+                            <li>✅ Corrección de Color</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Service 2 -->
+                <div class="reveal" style="display: flex; gap: 4rem; align-items: center; flex-wrap: wrap-reverse;">
+                    <div style="flex: 1; min-width: 300px;">
+                        <span class="hero-tagline">Social</span>
+                        <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">Estrategia RRSS</h2>
+                        <p style="color: var(--text-muted); margin-bottom: 2rem;">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                        <ul style="color: var(--text-muted); list-style: none; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <li>✅ Contenido Vertical</li>
+                            <li>✅ Gestión de Comunidad</li>
+                            <li>✅ Pauta Publicitaria</li>
+                        </ul>
+                    </div>
+                    <div style="flex: 1; min-width: 300px;">
+                        <div class="placeholder-img" style="aspect-ratio: 16/9; background: var(--glass); border-radius: 24px; display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px dashed var(--glass-border);">[IMAGE: RRSS_STRATEGY]</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof gsap !== 'undefined') {
+                gsap.to('.reveal', {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    stagger: 0.2,
+                    ease: 'power3.out'
+                });
+            } else {
+                document.querySelectorAll('.reveal').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

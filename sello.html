@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sello Discográfico | Birraverde</title>
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="noise"></div>
+
+    <nav>
+        <div class="container">
+            <a href="index.html" class="logo">Birraverde</a>
+            <ul class="nav-links">
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="servicios.html">Servicios</a></li>
+                <li><a href="sello.html" style="color: var(--primary);">Sello</a></li>
+                <li><a href="booking.html" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Reservar Sala</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="section">
+        <div class="container">
+            <div style="text-align: center; max-width: 800px; margin: 0 auto 5rem auto;">
+                <h1 class="reveal" style="font-size: 4rem; margin-bottom: 1.5rem;">Birraverde Records</h1>
+                <p class="reveal" style="color: var(--text-muted); font-size: 1.2rem;">Llevando la identidad del artista al siguiente nivel mediante la gestión integral y el posicionamiento estratégico.</p>
+            </div>
+
+            <div class="reveal" style="background: var(--bg-card); border: 1px solid var(--glass-border); border-radius: 32px; padding: 4rem; margin-bottom: 6rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 4rem; align-items: center;">
+                    <div>
+                        <h2 style="font-size: 2.5rem; margin-bottom: 1.5rem;">El futuro de la música</h2>
+                        <p style="color: var(--text-muted);">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.</p>
+                        <div style="margin-top: 2.5rem;">
+                            <a href="booking.html" class="btn btn-primary">Formar Parte</a>
+                        </div>
+                    </div>
+                    <div class="placeholder-img" style="aspect-ratio: 1; background: var(--glass); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text-muted); border: 1px dashed var(--glass-border);">[IMAGE: LABEL_CONCEPT]</div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card reveal">
+                    <h3>Distribución</h3>
+                    <p>Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.</p>
+                </div>
+                <div class="card reveal">
+                    <h3>Management</h3>
+                    <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt.</p>
+                </div>
+                <div class="card reveal">
+                    <h3>Marketing</h3>
+                    <p>Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof gsap !== 'undefined') {
+                gsap.to('.reveal', {
+                    opacity: 1,
+                    y: 0,
+                    duration: 1,
+                    stagger: 0.2,
+                    ease: 'power3.out'
+                });
+            } else {
+                document.querySelectorAll('.reveal').forEach(el => {
+                    el.style.opacity = '1';
+                    el.style.transform = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
