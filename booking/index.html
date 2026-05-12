@@ -74,16 +74,6 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="type">Tipo de Sesión</label>
-                                <select id="type" name="type" required>
-                                    <option value="Video Clip">Video Clip</option>
-                                    <option value="Contenido Redes">Contenido Redes</option>
-                                    <option value="Sesión Branding">Sesión Branding</option>
-                                    <option value="Reunión Sello">Reunión Sello</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
                                 <label for="duration">Duración (Horas)</label>
                                 <select id="duration" name="duration" required>
                                     <option value="1">1 Hora</option>
@@ -138,8 +128,27 @@
 
             let currentDate = new Date();
             let selectedDay = null;
+            let serverBookings = [];
 
             const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+            const fetchServerBookings = async () => {
+                try {
+                    const response = await fetch('/api/bookings');
+                    if (response.ok) {
+                        serverBookings = await response.json();
+                        // Re-render current views to update occupancy
+                        if (selectedDay) {
+                            const year = currentDate.getFullYear();
+                            const month = currentDate.getMonth();
+                            const dayString = `${year}-${String(month + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+                            renderTimeSlots(dayString);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error fetching bookings from server:', e);
+                }
+            };
 
             const renderCalendar = () => {
                 calendarGrid.innerHTML = '';
@@ -185,11 +194,14 @@
 
             const renderTimeSlots = (dateString) => {
                 timeSlotsGrid.innerHTML = '';
-                const bookings = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
+                
+                // Combine server bookings and local bookings for UI
+                const localBookings = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
+                const allBookings = [...serverBookings, ...localBookings];
                 
                 for (let hour = 8; hour <= 20; hour++) {
                     const time = `${String(hour).padStart(2, '0')}:00`;
-                    const isOccupied = bookings.some(b => b.date === dateString && b.time === time);
+                    const isOccupied = allBookings.some(b => b.date === dateString && b.time === time);
                     
                     const slot = document.createElement('div');
                     slot.innerText = time;
@@ -248,14 +260,6 @@
                 const formData = new FormData(form);
                 const booking = Object.fromEntries(formData.entries());
                 
-                const bookings = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
-                const isOccupied = bookings.some(b => b.date === booking.date && b.time === booking.time);
-                
-                if (isOccupied) {
-                    errorMessage.style.display = 'block';
-                    return;
-                }
-
                 // Show loading state
                 const btnText = document.getElementById('btnText');
                 const btnLoading = document.getElementById('btnLoading');
@@ -275,11 +279,12 @@
 
                     const result = await response.json();
 
-                    // Save to localStorage regardless
-                    bookings.unshift(booking);
-                    localStorage.setItem('birraverde_bookings', JSON.stringify(bookings));
-
                     if (response.ok) {
+                        // Save to localStorage
+                        const localBookings = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
+                        localBookings.unshift(booking);
+                        localStorage.setItem('birraverde_bookings', JSON.stringify(localBookings));
+
                         successMessage.style.display = 'block';
                         form.reset();
                         loadRecent();
@@ -287,23 +292,15 @@
                         selectedDay = null;
                         renderCalendar();
                         timeGridContainer.style.display = 'none';
+                        // Refresh server state
+                        fetchServerBookings();
                     } else {
-                        // API error but booking saved locally
-                        successMessage.innerHTML = '⚠️ Reserva guardada, pero hubo un error al enviar el correo. Contactanos directamente.';
-                        successMessage.style.color = '#ffaa00';
-                        successMessage.style.borderColor = 'rgba(255,170,0,0.2)';
-                        successMessage.style.background = 'rgba(255,170,0,0.08)';
-                        successMessage.style.display = 'block';
+                        errorMessage.innerText = `⚠️ ${result.error || 'Error al procesar la reserva.'}`;
+                        errorMessage.style.display = 'block';
                     }
                 } catch (err) {
-                    // Network error - save locally anyway
-                    bookings.unshift(booking);
-                    localStorage.setItem('birraverde_bookings', JSON.stringify(bookings));
-                    successMessage.innerHTML = '⚠️ Reserva guardada localmente. El correo no pudo enviarse.';
-                    successMessage.style.color = '#ffaa00';
-                    successMessage.style.borderColor = 'rgba(255,170,0,0.2)';
-                    successMessage.style.background = 'rgba(255,170,0,0.08)';
-                    successMessage.style.display = 'block';
+                    errorMessage.innerText = '⚠️ Error de conexión con el servidor.';
+                    errorMessage.style.display = 'block';
                 } finally {
                     btnText.style.display = 'inline';
                     btnLoading.style.display = 'none';
@@ -320,7 +317,7 @@
                         <div style="background: var(--bg-card); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center;">
                             <div>
                                 <strong style="color: var(--primary); font-size: 1.1rem;">${b.name}</strong>
-                                <p style="color: var(--text-muted); font-size: 0.9rem;">${b.type} - ${b.duration}h</p>
+                                <p style="color: var(--text-muted); font-size: 0.9rem;">${b.duration} hora(s)</p>
                             </div>
                             <div style="text-align: right;">
                                 <span style="display: block; font-weight: 600;">${b.date}</span>
@@ -333,6 +330,7 @@
 
             renderCalendar();
             loadRecent();
+            fetchServerBookings();
 
             if (typeof gsap !== 'undefined') {
                 gsap.to('.reveal', {
@@ -343,7 +341,6 @@
                     ease: 'power3.out'
                 });
             } else {
-                // Fallback if GSAP doesn't load
                 document.querySelectorAll('.reveal').forEach(el => {
                     el.style.opacity = '1';
                     el.style.transform = 'none';
@@ -351,7 +348,6 @@
             }
         });
 
-        // Hamburger menu
         const hamburger = document.getElementById('hamburger');
         const navLinks = document.getElementById('navLinks');
         const navOverlay = document.getElementById('navOverlay');
