@@ -35,13 +35,17 @@ app.use(express.json());
 app.use(express.static(join(__dirname, 'dist')));
 
 const createTransporter = () => {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    console.error('❌ Error: GMAIL_USER or GMAIL_APP_PASSWORD not set in environment.');
+  }
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
     },
-    // Add timeouts to prevent "Enviando..." hang
     connectionTimeout: 10000, 
     greetingTimeout: 10000,
     socketTimeout: 15000,
