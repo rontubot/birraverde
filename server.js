@@ -172,7 +172,7 @@ app.post('/api/booking', async (req, res) => {
 });
 
 // ─── Catch-all: serve index.html for SPA-like routing ─────────
-app.get('(.*)', (req, res) => {
+app.get('/:path*', (req, res) => {
   // Try to serve the exact file first, otherwise fallback to index.html
   const requestedPath = req.path.endsWith('/') ? req.path + 'index.html' : req.path;
   const filePath = join(__dirname, 'dist', requestedPath);
