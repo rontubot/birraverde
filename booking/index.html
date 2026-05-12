@@ -13,18 +13,23 @@
     <nav>
         <div class="container">
             <a href="/" class="logo">Birraverde</a>
-            <ul class="nav-links">
+            <ul class="nav-links" id="navLinks">
                 <li><a href="/">Inicio</a></li>
                 <li><a href="/servicios/">Servicios</a></li>
                 <li><a href="/sello/">Sello</a></li>
+                <li><a href="/booking/" style="color: var(--primary);">Reservar Sala</a></li>
             </ul>
             <a href="/" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Volver al Inicio</a>
+            <button class="hamburger" id="hamburger" aria-label="Menú">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
+    <div class="nav-overlay" id="navOverlay"></div>
 
     <main class="section">
         <div class="container">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 3rem;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
                 <!-- Left Side: Calendar & Time Grid -->
                 <div class="reveal">
                     <div class="booking-section" style="padding: 2rem;">
@@ -285,6 +290,23 @@
                 });
             }
         });
+
+        // Hamburger menu
+        const hamburger = document.getElementById('hamburger');
+        const navLinks = document.getElementById('navLinks');
+        const navOverlay = document.getElementById('navOverlay');
+        if (hamburger) {
+            hamburger.addEventListener('click', () => {
+                hamburger.classList.toggle('active');
+                navLinks.classList.toggle('open');
+                navOverlay.classList.toggle('active');
+            });
+            navOverlay.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navLinks.classList.remove('open');
+                navOverlay.classList.remove('active');
+            });
+        }
     </script>
 </body>
 </html>
