@@ -80,6 +80,7 @@ app.get('/api/bookings', (req, res) => {
 app.post('/api/booking', async (req, res) => {
   try {
     const { name, email, duration, date, time, notes } = req.body;
+    console.log('📩 Petición de reserva recibida para:', name, '(', email, ')');
 
     if (!name || !email || !duration || !date || !time) {
       return res.status(400).json({ error: 'Faltan campos obligatorios.' });
@@ -102,6 +103,7 @@ app.post('/api/booking', async (req, res) => {
 
     // 2. BACKGROUND EMAILS
     (async () => {
+      console.log('🚀 Iniciando proceso de envío de email...');
       try {
         const transporter = createTransporter();
         const [year, month, day] = date.split('-');
@@ -148,9 +150,9 @@ app.post('/api/booking', async (req, res) => {
 
         await transporter.sendMail(userMailOptions);
         await transporter.sendMail(adminMailOptions);
-        console.log('✅ Emails sent for:', name);
+        console.log('✅ Emails enviados correctamente para:', name);
       } catch (err) {
-        console.error('❌ Email Failed:', err.message);
+        console.error('❌ ERROR CRÍTICO EN SENDGRID:', err);
       }
     })();
 
