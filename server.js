@@ -111,62 +111,54 @@ app.post('/api/booking', async (req, res) => {
         const formattedDate = `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
 
         const userMailOptions = {
-          subject: 'Confirmación de Reserva - Birraverde Studio',
-          text: `Hola ${name}, confirmamos tu reserva para el ${formattedDate} a las ${time}. Birraverde Studio.`,
+          subject: '✅ Reserva Confirmada - Birraverde Studio',
+          text: `Hola ${name}, tu reserva ha sido confirmada para el día ${formattedDate} a las ${time} por una duración de ${duration} hora(s). ¡Te esperamos!`,
           html: `
-            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #111; line-height: 1.6;">
-              <div style="padding: 20px 0; border-bottom: 1px solid #eee; margin-bottom: 30px;">
-                <span style="font-size: 20px; font-weight: bold; letter-spacing: 1px;">BIRRAVERDE STUDIO</span>
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000000; color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
+              <div style="padding: 40px 30px; text-align: center; border-bottom: 2px solid #00ff41;">
+                <h1 style="color: #00ff41; margin: 0; letter-spacing: 4px; font-size: 28px; font-weight: 900;">BIRRAVERDE</h1>
+                <p style="color: #666; margin-top: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Creative Production Studio</p>
               </div>
-              
-              <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 20px;">Tu reserva está confirmada</h2>
-              
-              <p>Hola ${name},</p>
-              <p>Este correo confirma que hemos reservado con éxito tu sesión en nuestro estudio. A continuación, los detalles de tu cita:</p>
-              
-              <div style="background-color: #f8f8f8; border-radius: 8px; padding: 25px; margin: 30px 0; border: 1px solid #eee;">
-                <table style="width: 100%;">
-                  <tr>
-                    <td style="color: #666; font-size: 14px; padding-bottom: 8px;">FECHA</td>
-                    <td style="font-weight: 600; text-align: right; padding-bottom: 8px;">${formattedDate}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #666; font-size: 14px; padding-bottom: 8px;">HORA DE INICIO</td>
-                    <td style="font-weight: 600; text-align: right; padding-bottom: 8px;">${time}</td>
-                  </tr>
-                  <tr>
-                    <td style="color: #666; font-size: 14px;">DURACIÓN</td>
-                    <td style="font-weight: 600; text-align: right;">${duration} hora(s)</td>
-                  </tr>
-                </table>
-              </div>
-              
-              <p style="font-size: 14px;">Si necesitas cancelar o modificar tu reserva, por favor contáctanos respondiendo a este mismo correo o escribiéndonos a <strong>birraverdefilms@gmail.com</strong>.</p>
-              
-              <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #888;">
-                <p style="margin: 0;">Recibes este correo porque realizaste una reserva en <a href="https://birraverde.up.railway.app" style="color: #00ff41; text-decoration: none;">birraverde.up.railway.app</a></p>
-                <p style="margin: 5px 0;">Birraverde Studio | Buenos Aires, Argentina</p>
+              <div style="padding: 40px 30px;">
+                <h2 style="color: #ffffff; font-weight: 300;">¡Hola, ${name}!</h2>
+                <p style="color: #ccc; font-size: 16px; line-height: 1.6;">Tu reserva ha sido confirmada con éxito. Te esperamos en el estudio:</p>
+                
+                <div style="background-color: #111; padding: 25px; border-radius: 8px; border: 1px solid #222; margin: 30px 0;">
+                  <p style="margin: 0 0 15px 0; color: #888; font-size: 12px; text-transform: uppercase;">Detalles de la sesión</p>
+                  <p style="margin: 0 0 10px 0; font-size: 18px;">📅 <strong>${formattedDate}</strong></p>
+                  <p style="margin: 0 0 10px 0; font-size: 18px;">🕐 <strong>${time}</strong></p>
+                  <p style="margin: 0; font-size: 18px;">⏱️ <strong>${duration} hora(s)</strong></p>
+                </div>
+                
+                <p style="color: #666; font-size: 13px;">Si necesitas cancelar o modificar tu reserva, responde a este correo o escríbenos a birraverdefilms@gmail.com</p>
+                
+                <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #222; text-align: center; font-size: 11px; color: #444;">
+                  <p style="margin: 0;">Birraverde Studio | Buenos Aires, Argentina</p>
+                  <p style="margin: 5px 0;">Estás recibiendo este correo por una reserva en birraverde.up.railway.app</p>
+                </div>
               </div>
             </div>`
         };
 
         const adminMailOptions = {
-          subject: `Nueva Reserva Web: ${name}`,
+          subject: `🔔 Nueva Reserva: ${name}`,
           text: `Nueva reserva recibida de ${name} (${email}) para el ${formattedDate} a las ${time}.`,
           html: `
-            <div style="font-family: sans-serif; max-width: 500px; border: 1px solid #eee; padding: 20px; color: #333;">
-              <h2 style="color: #000; border-bottom: 2px solid #00ff41; padding-bottom: 10px;">Nueva Reserva</h2>
-              <p>Se ha registrado una nueva reserva a través de la web:</p>
-              <ul style="list-style: none; padding: 0;">
-                <li><strong>Cliente:</strong> ${name}</li>
-                <li><strong>Email:</strong> ${email}</li>
-                <li><strong>Fecha:</strong> ${formattedDate}</li>
-                <li><strong>Hora:</strong> ${time}</li>
-                <li><strong>Duración:</strong> ${duration} hora(s)</li>
-                <li><strong>Notas:</strong> ${notes || 'Ninguna'}</li>
-              </ul>
-              <div style="margin-top: 20px; font-size: 12px; color: #999;">
-                Enviado desde el sistema de reservas de Birraverde Studio.
+            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000000; color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
+              <div style="padding: 25px; text-align: center; border-bottom: 2px solid #00ff41; background-color: #0a0a0a;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 16px; letter-spacing: 2px;">NUEVA RESERVA WEB</h1>
+              </div>
+              <div style="padding: 30px;">
+                <table style="width: 100%; border-collapse: collapse; color: #ccc; font-size: 15px;">
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Cliente:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${name}</td></tr>
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Email:</td><td style="padding: 10px 0; border-bottom: 1px solid #111;"><a href="mailto:${email}" style="color: #00ff41; text-decoration: none;">${email}</a></td></tr>
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Fecha:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${formattedDate}</td></tr>
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Horario:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${time} (${duration}h)</td></tr>
+                  <tr><td style="padding: 10px 0; color: #666; vertical-align: top;">Notas:</td><td style="padding: 10px 0; font-style: italic;">${notes || 'Sin notas'}</td></tr>
+                </table>
+                <div style="margin-top: 30px; text-align: center;">
+                  <a href="https://birraverde.up.railway.app" style="color: #00ff41; font-size: 12px; text-decoration: none; border: 1px solid #333; padding: 8px 15px; border-radius: 4px;">Abrir Panel Web</a>
+                </div>
               </div>
             </div>`
         };
