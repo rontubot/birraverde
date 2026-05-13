@@ -64,12 +64,32 @@
                             </div>
 
                             <div class="form-group">
+                                <label for="email">Correo Electrónico</label>
+                                <input type="email" id="email" name="email" placeholder="artista@ejemplo.com" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone">Teléfono / WhatsApp</label>
+                                <input type="tel" id="phone" name="phone" placeholder="+54 9 ..." required>
+                            </div>
+
+                            <div class="form-group">
                                 <label for="type">Tipo de Sesión</label>
                                 <select id="type" name="type" required>
                                     <option value="Video Clip">Video Clip</option>
                                     <option value="Contenido Redes">Contenido Redes</option>
                                     <option value="Sesión Branding">Sesión Branding</option>
                                     <option value="Reunión Sello">Reunión Sello</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="people">Número de Personas</label>
+                                <select id="people" name="people" required>
+                                    <option value="1-2">1 a 2 personas</option>
+                                    <option value="3-5">3 a 5 personas</option>
+                                    <option value="6-10">6 a 10 personas</option>
+                                    <option value="10+">Más de 10</option>
                                 </select>
                             </div>
 
@@ -226,24 +246,37 @@
                 renderCalendar();
             };
 
-            form.onsubmit = (e) => {
+            form.onsubmit = async (e) => {
                 e.preventDefault();
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Procesando...';
+
                 const formData = new FormData(form);
                 const booking = Object.fromEntries(formData.entries());
                 
-                const bookings = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
-                const isOccupied = bookings.some(b => b.date === booking.date && b.time === booking.time);
-                
-                if (isOccupied) {
-                    errorMessage.style.display = 'block';
-                    return;
-                }
+                try {
+                    const response = await fetch('/api/booking', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(booking)
+                    });
 
-                bookings.unshift(booking);
-                localStorage.setItem('birraverde_bookings', JSON.stringify(bookings));
-                
-                alert('¡Reserva confirmada!');
-                location.reload();
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        alert('✅ ¡Reserva solicitada con éxito! Revisa tu correo.');
+                        location.reload();
+                    } else {
+                        errorMessage.innerText = `⚠️ ${result.error || 'Error al procesar la reserva'}`;
+                        errorMessage.style.display = 'block';
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = 'Confirmar Reserva';
+                    }
+                } catch (err) {
+                    alert('❌ Error de conexión con el servidor.');
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Confirmar Reserva';
+                }
             };
 
             const loadRecent = () => {

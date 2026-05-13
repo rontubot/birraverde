@@ -79,10 +79,10 @@ app.get('/api/bookings', (req, res) => {
 
 app.post('/api/booking', async (req, res) => {
   try {
-    const { name, email, duration, date, time, notes } = req.body;
+    const { name, email, phone, people, type, duration, date, time, notes } = req.body;
     console.log('📩 Petición de reserva recibida para:', name, '(', email, ')');
 
-    if (!name || !email || !duration || !date || !time) {
+    if (!name || !email || !phone || !duration || !date || !time) {
       return res.status(400).json({ error: 'Faltan campos obligatorios.' });
     }
 
@@ -142,7 +142,7 @@ app.post('/api/booking', async (req, res) => {
 
         const adminMailOptions = {
           subject: `🔔 Nueva Reserva: ${name}`,
-          text: `Nueva reserva recibida de ${name} (${email}) para el ${formattedDate} a las ${time}.`,
+          text: `Nueva reserva recibida de ${name} (${email}) - Tel: ${phone} - Personas: ${people} para el ${formattedDate} a las ${time}.`,
           html: `
             <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000000; color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
               <div style="padding: 25px; text-align: center; border-bottom: 2px solid #00ff41; background-color: #0a0a0a;">
@@ -152,6 +152,9 @@ app.post('/api/booking', async (req, res) => {
                 <table style="width: 100%; border-collapse: collapse; color: #ccc; font-size: 15px;">
                   <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Cliente:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${name}</td></tr>
                   <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Email:</td><td style="padding: 10px 0; border-bottom: 1px solid #111;"><a href="mailto:${email}" style="color: #00ff41; text-decoration: none;">${email}</a></td></tr>
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Teléfono:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${phone}</td></tr>
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Personas:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${people}</td></tr>
+                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Sesión:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${type}</td></tr>
                   <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Fecha:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${formattedDate}</td></tr>
                   <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Horario:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${time} (${duration}h)</td></tr>
                   <tr><td style="padding: 10px 0; color: #666; vertical-align: top;">Notas:</td><td style="padding: 10px 0; font-style: italic;">${notes || 'Sin notas'}</td></tr>
