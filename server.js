@@ -140,16 +140,41 @@ app.post('/api/booking', async (req, res) => {
           subject: `🔔 Nueva Reserva: ${name}`,
           text: `Nueva reserva recibida:\nCliente: ${name}\nEmail: ${email}\nFecha: ${formattedDate}\nHora: ${time}\nDuración: ${duration} hora(s)\nNotas: ${notes || 'Ninguna'}`,
           html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-              <h3 style="color: #333;">Nueva reserva recibida:</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Cliente:</strong></td><td>${name}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Email:</strong></td><td>${email}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Fecha:</strong></td><td>${formattedDate}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Hora:</strong></td><td>${time}</td></tr>
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #eee;"><strong>Duración:</strong></td><td>${duration} hora(s)</td></tr>
-                <tr><td style="padding: 8px 0;"><strong>Notas:</strong></td><td>${notes || 'Ninguna'}</td></tr>
-              </table>
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f4f4f4; padding: 20px;">
+              <div style="background-color: #000000; padding: 20px; border-radius: 8px 8px 0 0; text-align: center; border-bottom: 3px solid #00ff41;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 18px; letter-spacing: 1px;">NOTIFICACIÓN DE RESERVA</h1>
+              </div>
+              <div style="background-color: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                <p style="font-size: 14px; color: #666; margin-bottom: 25px;">Has recibido una nueva solicitud de reserva a través de la web:</p>
+                
+                <table style="width: 100%; border-collapse: collapse; font-size: 15px;">
+                  <tr>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; color: #888; width: 40%;">Cliente:</td>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; font-weight: 600;">${name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; color: #888;">Email:</td>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee;"><a href="mailto:${email}" style="color: #00ff41; text-decoration: none;">${email}</a></td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; color: #888;">Fecha:</td>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; font-weight: 600;">${formattedDate}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; color: #888;">Horario:</td>
+                    <td style="padding: 12px 10px; border-bottom: 1px solid #eee; font-weight: 600;">${time} (${duration}h)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 10px; color: #888; vertical-align: top;">Notas:</td>
+                    <td style="padding: 12px 10px; font-style: italic; color: #444;">${notes || 'Sin comentarios adicionales'}</td>
+                  </tr>
+                </table>
+
+                <div style="margin-top: 35px; text-align: center;">
+                  <a href="https://birraverde.up.railway.app/" style="background-color: #000000; color: #00ff41; padding: 14px 25px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; border: 1px solid #00ff41;">IR A LA WEB</a>
+                </div>
+              </div>
+              <p style="text-align: center; font-size: 11px; color: #aaa; margin-top: 20px;">Sistema de Reservas Automático | Birraverde Studio</p>
             </div>`
         };
 
