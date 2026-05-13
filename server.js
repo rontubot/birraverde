@@ -148,11 +148,36 @@ app.post('/api/booking', async (req, res) => {
             </ul>`
         };
 
-        await transporter.sendMail(userMailOptions);
-        await transporter.sendMail(adminMailOptions);
-        console.log('✅ Emails enviados correctamente para:', name);
+        // 3. SEND VIA SENDGRID API (Avoids SMTP Port Blocks)
+        const sendEmail = async (to, subject, html) => {
+          const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              personalizations: [{ to: [{ email: to }] }],
+              from: { 
+                email: process.env.GMAIL_USER || 'birraverdefilms@gmail.com',
+                name: 'Birraverde Studio'
+              },
+              subject: subject,
+              content: [{ type: 'text/html', value: html }]
+            })
+          });
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(JSON.stringify(error));
+          }
+        };
+
+        await sendEmail(email, '✅ Reserva Confirmada — Birraverde Studio', userMailOptions.html);
+        await sendEmail('birraverdefilms@gmail.com', `🔔 Nueva Reserva: ${name}`, adminMailOptions.html);
+        
+        console.log('✅ Emails enviados correctamente vía API para:', name);
       } catch (err) {
-        console.error('❌ ERROR CRÍTICO EN SENDGRID:', err);
+        console.error('❌ ERROR EN LA API DE SENDGRID:', err);
       }
     })();
 
