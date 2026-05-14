@@ -1,5 +1,4 @@
 import express from 'express';
-import nodemailer from 'nodemailer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
@@ -47,28 +46,7 @@ const overlaps = (start1, duration1, start2, duration2) => {
   return Math.max(s1, s2) < Math.min(e1, e2);
 };
 
-const createTransporter = () => {
-  // If we have a SendGrid API Key, use that (more reliable on Railway)
-  if (process.env.SENDGRID_API_KEY) {
-    return nodemailer.createTransport({
-      host: 'smtp.sendgrid.net',
-      port: 587,
-      secure: false, // Use STARTTLS
-      auth: {
-        user: 'apikey',
-        pass: process.env.SENDGRID_API_KEY
-      }
-    });
-  }
-  // Fallback to Gmail
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    }
-  });
-};
+
 
 // ─── Booking API ──────────────────────────────────────────────
 
@@ -105,7 +83,6 @@ app.post('/api/booking', async (req, res) => {
     (async () => {
       console.log('🚀 Iniciando proceso de envío de email...');
       try {
-        const transporter = createTransporter();
         const [year, month, day] = date.split('-');
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const formattedDate = `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
@@ -141,65 +118,40 @@ app.post('/api/booking', async (req, res) => {
         };
 
         const adminMailOptions = {
-          subject: `🔔 Nueva Reserva: ${name}`,
-          text: `Nueva reserva recibida de ${name} (${email}) - Tel: ${phone} - Personas: ${people} para el ${formattedDate} a las ${time}.`,
-          html: `
-            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000000; color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
-              <div style="padding: 25px; text-align: center; border-bottom: 2px solid #00ff41; background-color: #0a0a0a;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 16px; letter-spacing: 2px;">NUEVA RESERVA WEB</h1>
-              </div>
-              <div style="padding: 30px;">
-                <table style="width: 100%; border-collapse: collapse; color: #ccc; font-size: 15px;">
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Cliente:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${name}</td></tr>
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Email:</td><td style="padding: 10px 0; border-bottom: 1px solid #111;"><a href="mailto:${email}" style="color: #00ff41; text-decoration: none;">${email}</a></td></tr>
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Teléfono:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${phone}</td></tr>
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Personas:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${people}</td></tr>
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Sesión:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${type}</td></tr>
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Fecha:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${formattedDate}</td></tr>
-                  <tr><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #666;">Horario:</td><td style="padding: 10px 0; border-bottom: 1px solid #111; color: #fff;">${time} (${duration}h)</td></tr>
-                  <tr><td style="padding: 10px 0; color: #666; vertical-align: top;">Notas:</td><td style="padding: 10px 0; font-style: italic;">${notes || 'Sin notas'}</td></tr>
-                </table>
-                <div style="margin-top: 30px; text-align: center;">
-                  <a href="https://birraverde.up.railway.app" style="color: #00ff41; font-size: 12px; text-decoration: none; border: 1px solid #333; padding: 8px 15px; border-radius: 4px;">Abrir Panel Web</a>
-                </div>
-              </div>
-            </div>`
+          text: `Nueva reserva recibida de ${name} (${email}) - Tel: ${phone} - Personas: ${people} para el ${formattedDate} a las ${time}.`
         };
 
-        // 3. SEND VIA SENDGRID API (Avoids SMTP Port Blocks)
-        const sendEmail = async (to, subject, text, html) => {
-          const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              personalizations: [{ to: [{ email: to }] }],
-              from: { 
-                email: process.env.GMAIL_USER || 'birraverdefilms@gmail.com',
-                name: 'Birraverde Studio'
-              },
-              reply_to: { email: 'birraverdefilms@gmail.com', name: 'Birraverde Support' },
-              subject: subject,
-              content: [
-                { type: 'text/plain', value: text },
-                { type: 'text/html', value: html }
-              ]
-            })
-          });
-          if (!response.ok) {
-            const error = await response.json();
-            throw new Error(JSON.stringify(error));
-          }
-        };
-
-        await sendEmail(email, userMailOptions.subject, userMailOptions.text, userMailOptions.html);
-        await sendEmail('birraverdefilms@gmail.com', adminMailOptions.subject, adminMailOptions.text, adminMailOptions.html);
+        // 3. ENVIAR VIA GOOGLE APPS SCRIPT (Calendario + Gmail)
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
         
-        console.log('✅ Emails enviados correctamente vía API para:', name);
+        const response = await fetch(scriptURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            token: "BIRRAVERDE_2024_SECURE",
+            name,
+            email,
+            phone,
+            people,
+            type,
+            duration,
+            date,
+            time,
+            notes,
+            subject: userMailOptions.subject,
+            html: userMailOptions.html,
+            textAdmin: adminMailOptions.text
+          })
+        });
+
+        const resultText = await response.text();
+        if (resultText === 'OK') {
+          console.log('✅ Emails y Calendario procesados correctamente por Google Apps Script para:', name);
+        } else {
+          throw new Error(resultText);
+        }
       } catch (err) {
-        console.error('❌ ERROR EN LA API DE SENDGRID:', err);
+        console.error('❌ ERROR EN GOOGLE APPS SCRIPT:', err);
       }
     })();
 
