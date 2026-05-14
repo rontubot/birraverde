@@ -31,13 +31,11 @@ const saveBookings = () => {
 app.use(express.json());
 app.use(express.static(join(__dirname, 'dist')));
 
-// Helper to convert "HH:mm" to minutes from midnight
 const timeToMinutes = (timeStr) => {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 };
 
-// Helper to check if two time ranges overlap
 const overlaps = (start1, duration1, start2, duration2) => {
   const s1 = timeToMinutes(start1);
   const e1 = s1 + (Number(duration1) * 60);
@@ -46,25 +44,18 @@ const overlaps = (start1, duration1, start2, duration2) => {
   return Math.max(s1, s2) < Math.min(e1, e2);
 };
 
-
-
-// ─── Booking API ──────────────────────────────────────────────
-
 app.get('/api/bookings', (req, res) => {
-  // Return all bookings with duration so frontend can calculate occupancy
   res.json(bookings.map(b => ({ date: b.date, time: b.time, duration: b.duration })));
 });
 
 app.post('/api/booking', async (req, res) => {
   try {
     const { name, email, phone, people, duration, date, time, notes } = req.body;
-    console.log('📩 Petición de reserva recibida para:', name, '(', email, ')');
-
+    
     if (!name || !email || !phone || !duration || !date || !time) {
       return res.status(400).json({ error: 'Faltan campos obligatorios.' });
     }
 
-    // Check if any existing booking on that date overlaps with the new range
     const isOccupied = bookings.some(b => 
       b.date === date && overlaps(b.time, b.duration, time, duration)
     );
@@ -73,85 +64,68 @@ app.post('/api/booking', async (req, res) => {
       return res.status(409).json({ error: 'Parte del horario seleccionado ya está ocupado.' });
     }
 
-    // 1. SAVE THE BOOKING
     bookings.push({ name, email, duration, date, time, notes, createdAt: new Date() });
     saveBookings();
 
     res.json({ success: true, message: 'Reserva registrada.' });
 
-    // 2. BACKGROUND EMAILS
     (async () => {
-      console.log('🚀 Iniciando proceso de envío de email...');
       try {
         const [year, month, day] = date.split('-');
         const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
         const formattedDate = `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
 
-        const userMailOptions = {
-          subject: '✅ Reserva Confirmada - Birraverde Studio',
-          text: `Hola ${name}, tu reserva ha sido confirmada para el día ${formattedDate} a las ${time} por una duración de ${duration} hora(s). ¡Te esperamos!`,
-          html: `
-            <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000000; color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
-              <div style="padding: 40px 30px; text-align: center; border-bottom: 2px solid #00ff41;">
-                <h1 style="color: #00ff41; margin: 0; letter-spacing: 4px; font-size: 28px; font-weight: 900;">BIRRAVERDE</h1>
-                <p style="color: #666; margin-top: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Creative Production Studio</p>
+        // DISEÑO BASE PARA AMBOS CORREOS
+        const createHtml = (userName, detailsHtml) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000; color: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
+            <div style="padding: 30px; text-align: center; border-bottom: 2px solid #00ff41;">
+              <h1 style="color: #00ff41; margin: 0; letter-spacing: 4px; font-size: 24px;">BIRRAVERDE</h1>
+            </div>
+            <div style="padding: 30px;">
+              <h2 style="font-weight: 300;">Hola, ${userName}</h2>
+              ${detailsHtml}
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #222; text-align: center; font-size: 10px; color: #555;">
+                Birraverde Studio | Buenos Aires
               </div>
-              <div style="padding: 40px 30px;">
-                <h2 style="color: #ffffff; font-weight: 300;">¡Hola, ${name}!</h2>
-                <p style="color: #ccc; font-size: 16px; line-height: 1.6;">Tu reserva ha sido confirmada con éxito. Te esperamos en el estudio:</p>
-                
-                <div style="background-color: #111; padding: 25px; border-radius: 8px; border: 1px solid #222; margin: 30px 0;">
-                  <p style="margin: 0 0 15px 0; color: #888; font-size: 12px; text-transform: uppercase;">Detalles de la sesión</p>
-                  <p style="margin: 0 0 10px 0; font-size: 18px;">📅 <strong>${formattedDate}</strong></p>
-                  <p style="margin: 0 0 10px 0; font-size: 18px;">🕐 <strong>${time}</strong></p>
-                  <p style="margin: 0; font-size: 18px;">⏱️ <strong>${duration} hora(s)</strong></p>
-                </div>
-                
-                <p style="color: #666; font-size: 13px;">Si necesitas cancelar o modificar tu reserva, responde a este correo o escríbenos a birraverdefilms@gmail.com</p>
-                
-                <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #222; text-align: center; font-size: 11px; color: #444;">
-                  <p style="margin: 0;">Birraverde Studio | Buenos Aires, Argentina</p>
-                  <p style="margin: 5px 0;">Estás recibiendo este correo por una reserva en birraverde.up.railway.app</p>
-                </div>
-              </div>
-            </div>`
-        };
+            </div>
+          </div>`;
 
-        const adminMailOptions = {
-          text: `Nueva reserva recibida de ${name} (${email}) - Tel: ${phone} - Personas: ${people} para el ${formattedDate} a las ${time}.`
-        };
+        const userDetails = `
+          <p style="color: #ccc;">Tu reserva ha sido confirmada:</p>
+          <div style="background: #111; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+            <p style="margin: 5px 0;">Fecha: <strong>${formattedDate}</strong></p>
+            <p style="margin: 5px 0;">Hora: <strong>${time}</strong></p>
+            <p style="margin: 5px 0;">Duracion: <strong>${duration} hora(s)</strong></p>
+          </div>`;
 
-        // 3. ENVIAR VIA GOOGLE APPS SCRIPT (Calendario + Gmail)
+        const adminDetails = `
+          <p style="color: #00ff41;">¡Nueva reserva recibida!</p>
+          <div style="background: #111; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+            <p style="margin: 5px 0;">Cliente: <strong>${name}</strong></p>
+            <p style="margin: 5px 0;">Email: <strong>${email}</strong></p>
+            <p style="margin: 5px 0;">Telefono: <strong>${phone}</strong></p>
+            <p style="margin: 5px 0;">Personas: <strong>${people}</strong></p>
+            <p style="margin: 5px 0;">Fecha: <strong>${formattedDate}</strong></p>
+            <p style="margin: 5px 0;">Hora: <strong>${time}</strong></p>
+            <p style="margin: 5px 0;">Notas: ${notes || 'Ninguna'}</p>
+          </div>`;
+
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
         
-        const response = await fetch(scriptURL, {
+        await fetch(scriptURL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
             token: "BIRRAVERDE_2024_SECURE",
-            name,
-            email,
-            phone,
-            people,
-
-            duration,
-            date,
-            time,
-            notes,
-            subject: userMailOptions.subject,
-            html: userMailOptions.html,
-            textAdmin: adminMailOptions.text
+            name, email, phone, people, duration, date, time, notes,
+            subject: 'Reserva Confirmada - Birraverde Studio',
+            html: createHtml(name, userDetails),
+            htmlAdmin: createHtml('Administrador', adminDetails),
+            textAdmin: `Nueva reserva de ${name} para el ${formattedDate}`
           })
         });
-
-        const resultText = await response.text();
-        if (resultText === 'OK') {
-          console.log('✅ Emails y Calendario procesados correctamente por Google Apps Script para:', name);
-        } else {
-          throw new Error(resultText);
-        }
       } catch (err) {
-        console.error('❌ ERROR EN GOOGLE APPS SCRIPT:', err);
+        console.error('Error en proceso de email:', err);
       }
     })();
 
