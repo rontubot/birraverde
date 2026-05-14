@@ -57,7 +57,7 @@ app.get('/api/bookings', (req, res) => {
 
 app.post('/api/booking', async (req, res) => {
   try {
-    const { name, email, phone, people, type, duration, date, time, notes } = req.body;
+    const { name, email, phone, people, duration, date, time, notes } = req.body;
     console.log('📩 Petición de reserva recibida para:', name, '(', email, ')');
 
     if (!name || !email || !phone || !duration || !date || !time) {
@@ -133,7 +133,7 @@ app.post('/api/booking', async (req, res) => {
             email,
             phone,
             people,
-            type,
+
             duration,
             date,
             time,
