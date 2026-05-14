@@ -141,10 +141,17 @@ nav .container {
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  height: 40px; /* Tamaño del logo */
   color: var(--primary);
-  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.logo img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
 }
 
 .nav-links {
