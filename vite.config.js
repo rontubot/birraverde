@@ -6,7 +6,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        booking: resolve(__dirname, 'booking/index.html'),
+        sala: resolve(__dirname, 'sala/index.html'),
         servicios: resolve(__dirname, 'servicios/index.html'),
         sello: resolve(__dirname, 'sello/index.html'),
       },
