@@ -436,3 +436,86 @@ input:focus, select:focus, textarea:focus {
     grid-template-columns: 1fr;
   }
 }
+
+/* Email Chips Input Widget */
+.chips-input-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  padding: 0.5rem;
+  border-radius: 12px;
+  min-height: 3.5rem;
+  cursor: text;
+  transition: var(--transition);
+}
+
+.chips-input-container.focused {
+  border-color: var(--primary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.email-chip {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  color: var(--primary);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  gap: 0.5rem;
+  animation: chipScaleIn 0.2s ease-out;
+}
+
+.email-chip .remove-chip-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transition: var(--transition);
+  line-height: 1;
+}
+
+.email-chip .remove-chip-btn:hover {
+  background: rgba(0, 255, 65, 0.2);
+}
+
+.chips-input-container input {
+  flex: 1;
+  min-width: 150px;
+  border: none !important;
+  background: transparent !important;
+  padding: 0.5rem !important;
+  outline: none !important;
+  color: #fff;
+  height: auto;
+}
+
+.chips-input-container input:focus {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+@keyframes chipScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+

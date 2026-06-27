@@ -64,8 +64,16 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="email">Correo Electrónico</label>
-                                <input type="email" id="email" name="email" placeholder="artista@ejemplo.com" required>
+                                <label for="emailInput">Correo Electrónico</label>
+                                <div id="emailChipsContainer" class="chips-input-container">
+                                    <!-- Chips will be inserted here dynamically -->
+                                    <input type="text" id="emailInput" placeholder="artista@ejemplo.com, otro@ejemplo.com" autocomplete="off">
+                                </div>
+                                <input type="hidden" id="email" name="email">
+                                <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-top: 0.5rem;">
+                                    Escribe un correo y presiona <strong>Enter</strong> o <strong>Coma (,)</strong> para agregarlo. Puedes agregar varios.
+                                </small>
+                                <div id="email-error-msg" style="color: #ff4444; font-size: 0.8rem; margin-top: 0.25rem; display: none;"></div>
                             </div>
 
                             <div class="form-group">
@@ -136,6 +144,97 @@
 
             let currentDate = new Date();
             let selectedDay = null;
+
+            // Lógica para múltiples correos electrónicos (Chips)
+            const emailInput = document.getElementById('emailInput');
+            const emailChipsContainer = document.getElementById('emailChipsContainer');
+            const hiddenEmailInput = document.getElementById('email');
+            const emailErrorMsg = document.getElementById('email-error-msg');
+            let emails = [];
+
+            const renderChips = () => {
+                // Eliminar chips existentes
+                emailChipsContainer.querySelectorAll('.email-chip').forEach(chip => chip.remove());
+                
+                // Renderizar los chips antes del input de texto
+                emails.forEach((email, index) => {
+                    const chip = document.createElement('div');
+                    chip.className = 'email-chip';
+                    chip.innerHTML = `
+                        <span>${email}</span>
+                        <button type="button" class="remove-chip-btn" data-index="${index}">&times;</button>
+                    `;
+                    emailChipsContainer.insertBefore(chip, emailInput);
+                });
+
+                hiddenEmailInput.value = emails.join(', ');
+            };
+
+            const addEmail = (val) => {
+                const trimmed = val.trim().toLowerCase();
+                if (!trimmed) return;
+                
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(trimmed)) {
+                    emailErrorMsg.innerText = `"${trimmed}" no es un correo válido.`;
+                    emailErrorMsg.style.display = 'block';
+                    return;
+                }
+                
+                if (emails.includes(trimmed)) {
+                    emailErrorMsg.innerText = `"${trimmed}" ya ha sido agregado.`;
+                    emailErrorMsg.style.display = 'block';
+                    return;
+                }
+
+                emails.push(trimmed);
+                renderChips();
+                emailInput.value = '';
+                emailErrorMsg.style.display = 'none';
+            };
+
+            emailChipsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-chip-btn')) {
+                    const index = parseInt(e.target.getAttribute('data-index'));
+                    emails.splice(index, 1);
+                    renderChips();
+                    emailInput.focus();
+                } else {
+                    emailInput.focus();
+                }
+            });
+
+            emailInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ',') {
+                    e.preventDefault();
+                    addEmail(emailInput.value);
+                } else if (e.key === 'Backspace' && emailInput.value === '') {
+                    emails.pop();
+                    renderChips();
+                }
+            });
+
+            emailInput.addEventListener('blur', () => {
+                if (emailInput.value) {
+                    addEmail(emailInput.value);
+                }
+                emailChipsContainer.classList.remove('focused');
+            });
+
+            emailInput.addEventListener('focus', () => {
+                emailChipsContainer.classList.add('focused');
+            });
+
+            emailInput.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const pasteData = (e.clipboardData || window.clipboardData).getData('text');
+                const potentialEmails = pasteData.split(/[,;\s]+/);
+                potentialEmails.forEach(email => {
+                    if (email.trim()) {
+                        addEmail(email);
+                    }
+                });
+            });
 
             const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -243,6 +342,20 @@
 
             form.onsubmit = async (e) => {
                 e.preventDefault();
+
+                // Asegurarse de agregar cualquier email en el input antes de enviar
+                if (emailInput.value) {
+                    addEmail(emailInput.value);
+                }
+
+                // Validar que haya al menos un email
+                if (emails.length === 0) {
+                    emailErrorMsg.innerText = '⚠️ Debes agregar al menos un correo electrónico.';
+                    emailErrorMsg.style.display = 'block';
+                    emailInput.focus();
+                    return;
+                }
+
                 submitBtn.disabled = true;
                 submitBtn.innerText = 'Procesando...';
 
