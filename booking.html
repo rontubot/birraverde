@@ -18,7 +18,7 @@
                 <li><a href="servicios.html">Servicios</a></li>
                 <li><a href="sello.html">Sello</a></li>
             </ul>
-            <a href="index.html" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Volver al Inicio</a>
+            <a href="/login.html" id="navAuthLink" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Iniciar Sesión</a>
         </div>
     </nav>
 
@@ -154,6 +154,20 @@
             const hiddenEmailInput = document.getElementById('email');
             const emailErrorMsg = document.getElementById('email-error-msg');
             let emails = [];
+
+            // Autofill client info if logged in
+            const userStr = localStorage.getItem('birraverde_user');
+            if (userStr) {
+                try {
+                    const u = JSON.parse(userStr);
+                    if (u.name) document.getElementById('name').value = u.name;
+                    if (u.email) {
+                        emails.push(u.email);
+                    }
+                } catch (e) {
+                    console.error('Error autofilling user data:', e);
+                }
+            }
 
             const renderChips = () => {
                 // Eliminar chips existentes
@@ -366,9 +380,14 @@
                 const booking = Object.fromEntries(formData.entries());
                 
                 try {
+                    const headers = { 'Content-Type': 'application/json' };
+                    const token = localStorage.getItem('birraverde_token');
+                    if (token) {
+                        headers['Authorization'] = `Bearer ${token}`;
+                    }
                     const response = await fetch('/api/booking', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: headers,
                         body: JSON.stringify(booking)
                     });
 
@@ -437,6 +456,18 @@
                         location.reload();
                     }
                 };
+            }
+
+            // Auth nav link check
+            const authLink = document.getElementById('navAuthLink');
+            if (authLink) {
+                if (localStorage.getItem('birraverde_token')) {
+                    authLink.innerText = 'Mi Perfil';
+                    authLink.href = '/perfil/';
+                } else {
+                    authLink.innerText = 'Iniciar Sesión';
+                    authLink.href = '/login.html';
+                }
             }
         });
     </script>

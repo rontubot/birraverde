@@ -2,12 +2,16 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+const JWT_SECRET = 'birraverde_super_secret_jwt_2026';
 
 const DATA_FILE = join(__dirname, 'bookings.json');
 let bookings = [];
@@ -26,6 +30,77 @@ const saveBookings = () => {
   } catch (e) {
     console.error('Error saving bookings file:', e);
   }
+};
+
+const USERS_FILE = join(__dirname, 'users.json');
+let users = [];
+
+if (fs.existsSync(USERS_FILE)) {
+  try {
+    users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+  } catch (e) {
+    console.error('Error reading users file:', e);
+  }
+}
+
+const saveUsers = () => {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  } catch (e) {
+    console.error('Error saving users file:', e);
+  }
+};
+
+// Asegurar Super Usuario por defecto
+const ensureAdminUser = () => {
+  const adminEmail = 'birraverdefilms@gmail.com';
+  const adminExists = users.some(u => u.email === adminEmail);
+  if (!adminExists) {
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync('AdminBirra2026!', salt);
+    users.push({
+      id: 'admin-superuser',
+      name: 'Super Usuario Admin',
+      email: adminEmail,
+      password: passwordHash,
+      role: 'admin',
+      createdAt: new Date()
+    });
+    saveUsers();
+    console.log('🔴 Default Admin created: birraverdefilms@gmail.com / AdminBirra2026!');
+  }
+};
+ensureAdminUser();
+
+// Middlewares de autenticación y autorización
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decodedUser) => {
+    if (err) {
+      return res.status(403).json({ error: 'Token inválido o expirado.' });
+    }
+    const user = users.find(u => u.id === decodedUser.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+const requireRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'No tienes permisos para realizar esta acción.' });
+    }
+    next();
+  };
 };
 
 app.use(express.json());
@@ -64,7 +139,34 @@ app.post('/api/booking', async (req, res) => {
       return res.status(409).json({ error: 'Parte del horario seleccionado ya está ocupado.' });
     }
 
-    bookings.push({ name, email, duration, date, time, notes, createdAt: new Date() });
+    // Opcionalmente asociar userId si hay token
+    let userId = null;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        userId = decoded.id;
+      } catch (e) {
+        // Ignorar token no válido
+      }
+    }
+
+    const newBooking = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+      userId,
+      name,
+      email,
+      phone,
+      people,
+      duration,
+      date,
+      time,
+      notes,
+      createdAt: new Date()
+    };
+
+    bookings.push(newBooking);
     saveBookings();
 
     res.json({ success: true, message: 'Reserva registrada.' });
@@ -133,6 +235,147 @@ app.post('/api/booking', async (req, res) => {
     console.error('Error:', error);
     if (!res.headersSent) res.status(500).json({ error: 'Error del servidor.' });
   }
+});
+
+// --- RUTAS DE AUTENTICACIÓN ---
+
+app.post('/api/auth/register', (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+    }
+    
+    const emailLower = email.trim().toLowerCase();
+    const userExists = users.some(u => u.email === emailLower);
+    if (userExists) {
+      return res.status(409).json({ error: 'El correo electrónico ya está registrado.' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(password, salt);
+
+    const newUser = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+      name: name.trim(),
+      email: emailLower,
+      password: passwordHash,
+      role: 'client',
+      createdAt: new Date()
+    };
+
+    users.push(newUser);
+    saveUsers();
+
+    res.json({ success: true, message: 'Usuario registrado con éxito.' });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Correo y contraseña obligatorios.' });
+    }
+
+    const emailLower = email.trim().toLowerCase();
+    const user = users.find(u => u.email === emailLower);
+    if (!user) {
+      return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
+    }
+
+    const isPasswordValid = bcrypt.compareSync(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
+    }
+
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+app.get('/api/auth/me', authenticateToken, (req, res) => {
+  res.json({
+    user: {
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role
+    }
+  });
+});
+
+// --- RUTAS DE ADMINISTRACIÓN ---
+
+app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker']), (req, res) => {
+  res.json(bookings);
+});
+
+app.delete('/api/admin/bookings/:id', authenticateToken, requireRole(['admin']), (req, res) => {
+  const bookingId = req.params.id;
+  const index = bookings.findIndex(b => b.id === bookingId);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Reserva no encontrada.' });
+  }
+
+  bookings.splice(index, 1);
+  saveBookings();
+  res.json({ success: true, message: 'Reserva eliminada con éxito.' });
+});
+
+app.get('/api/admin/users', authenticateToken, requireRole(['admin']), (req, res) => {
+  const sanitizedUsers = users.map(u => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role
+  }));
+  res.json(sanitizedUsers);
+});
+
+app.post('/api/admin/users/role', authenticateToken, requireRole(['admin']), (req, res) => {
+  const { userId, role } = req.body;
+  if (!userId || !role) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+  }
+
+  const allowedRoles = ['client', 'worker', 'admin'];
+  if (!allowedRoles.includes(role)) {
+    return res.status(400).json({ error: 'Rol no permitido.' });
+  }
+
+  const user = users.find(u => u.id === userId);
+  if (!user) {
+    return res.status(404).json({ error: 'Usuario no encontrado.' });
+  }
+
+  if (user.email === 'birraverdefilms@gmail.com') {
+    return res.status(403).json({ error: 'No se puede modificar el rol del Super Usuario.' });
+  }
+
+  user.role = role;
+  saveUsers();
+  res.json({ success: true, message: 'Rol de usuario actualizado con éxito.' });
 });
 
 app.use((req, res) => {

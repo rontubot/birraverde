@@ -17,7 +17,8 @@
                 <li><a href="/">Inicio</a></li>
                 <li><a href="/servicios/">Servicios</a></li>
                 <li><a href="/sello/" style="color: var(--primary);">Sello</a></li>
-                <li><a href="/sala/" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Reservar Sala</a></li>
+                <li><a href="/sala/">Reservar Sala</a></li>
+                <li><a href="/login.html" id="navAuthLink" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Iniciar Sesión</a></li>
             </ul>
             <button class="hamburger" id="hamburger" aria-label="Menú">
                 <span></span><span></span><span></span>
@@ -79,6 +80,18 @@
                     el.style.opacity = '1';
                     el.style.transform = 'none';
                 });
+            }
+
+            // Auth nav link check
+            const authLink = document.getElementById('navAuthLink');
+            if (authLink) {
+                if (localStorage.getItem('birraverde_token')) {
+                    authLink.innerText = 'Mi Perfil';
+                    authLink.href = '/perfil/';
+                } else {
+                    authLink.innerText = 'Iniciar Sesión';
+                    authLink.href = '/login.html';
+                }
             }
         });
 

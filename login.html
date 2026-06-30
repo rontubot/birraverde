@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar Sesión | Birraverde</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <style>
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            max-width: 450px;
+            width: 100%;
+            margin: 0 auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            animation: cardFadeIn 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        @keyframes cardFadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .login-container {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="noise"></div>
+
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="/birraverde.png" alt="Birraverde">
+            </a>
+            <ul class="nav-links">
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/servicios/">Servicios</a></li>
+                <li><a href="/sello/">Sello</a></li>
+                <li><a href="/sala/">Reservar Sala</a></li>
+            </ul>
+            <a href="/" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Volver</a>
+        </div>
+    </nav>
+
+    <main class="section">
+        <div class="container login-container">
+            <div class="login-card">
+                <h2 style="margin-bottom: 0.5rem; text-align: center;">Iniciar Sesión</h2>
+                <p style="color: var(--text-muted); text-align: center; margin-bottom: 2.5rem; font-size: 0.95rem;">
+                    Accede a tu panel para gestionar tus reservas.
+                </p>
+
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="email">Correo Electrónico</label>
+                        <input type="email" id="email" name="email" placeholder="tu@correo.com" required autocomplete="email">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label for="password" style="margin: 0;">Contraseña</label>
+                        </div>
+                        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                    </div>
+
+                    <div id="error-message" style="color: #ff4444; font-size: 0.9rem; margin-bottom: 1.5rem; display: none; text-align: center; background: rgba(255, 68, 68, 0.08); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255, 68, 68, 0.2);"></div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; justify-content: center; margin-bottom: 1.5rem;">
+                        Entrar
+                    </button>
+
+                    <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+                        ¿No tienes una cuenta? <a href="/register.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">Regístrate</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Si ya está logueado, redirigir
+            if (localStorage.getItem('birraverde_token')) {
+                window.location.href = '/perfil/';
+            }
+
+            const form = document.getElementById('loginForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMessage = document.getElementById('error-message');
+
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                submitBtn.disabled = true;
+                submitBtn.innerText = 'Cargando...';
+                errorMessage.style.display = 'none';
+
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                try {
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        localStorage.setItem('birraverde_token', data.token);
+                        localStorage.setItem('birraverde_user', JSON.stringify(data.user));
+                        window.location.href = '/perfil/';
+                    } else {
+                        errorMessage.innerText = data.error || 'Error al iniciar sesión.';
+                        errorMessage.style.display = 'block';
+                        submitBtn.disabled = false;
+                        submitBtn.innerText = 'Entrar';
+                    }
+                } catch (err) {
+                    errorMessage.innerText = 'Error de conexión con el servidor.';
+                    errorMessage.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = 'Entrar';
+                }
+            };
+        });
+    </script>
+</body>
+</html>
