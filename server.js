@@ -4,6 +4,7 @@ import { dirname, join } from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -238,6 +239,114 @@ app.post('/api/booking', async (req, res) => {
 });
 
 // --- RUTAS DE AUTENTICACIÓN ---
+
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'El correo electrónico es obligatorio.' });
+    }
+
+    const emailLower = email.trim().toLowerCase();
+    const user = users.find(u => u.email === emailLower);
+    
+    // Por seguridad, no indicamos si el correo existe o no, pero solo lo enviamos si existe
+    if (!user) {
+      return res.json({ success: true, message: 'Si el correo está registrado, recibirás un enlace de recuperación pronto.' });
+    }
+
+    // Generar token seguro
+    const token = crypto.randomBytes(20).toString('hex');
+    user.resetPasswordToken = token;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hora
+    saveUsers();
+
+    // Enlace de restablecimiento
+    const resetURL = `${req.protocol}://${req.get('host')}/reset-password.html?token=${token}`;
+    
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000; color: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
+        <div style="padding: 30px; text-align: center; border-bottom: 2px solid #00ff41;">
+          <h1 style="color: #00ff41; margin: 0; letter-spacing: 4px; font-size: 24px;">BIRRAVERDE</h1>
+        </div>
+        <div style="padding: 30px;">
+          <h2 style="font-weight: 300;">Hola, ${user.name}</h2>
+          <p style="color: #ccc; line-height: 1.6;">Has solicitado restablecer tu contraseña para tu cuenta de Birraverde Studio.</p>
+          <p style="color: #ccc; line-height: 1.6;">Haz clic en el siguiente botón para elegir una nueva contraseña. Este enlace expira en 1 hora.</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetURL}" style="background-color: #00ff41; color: #000; padding: 12px 24px; border-radius: 100px; text-decoration: none; font-weight: bold; display: inline-block;">Restablecer Contraseña</a>
+          </div>
+          <p style="color: #555; font-size: 11px;">Si no solicitaste este cambio, por favor ignora este correo.</p>
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #222; text-align: center; font-size: 10px; color: #555;">
+            Birraverde Studio | Buenos Aires
+          </div>
+        </div>
+      </div>`;
+
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+    
+    await fetch(scriptURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: "BIRRAVERDE_2024_SECURE",
+        name: user.name,
+        email: user.email,
+        phone: "Recuperación",
+        people: "1",
+        duration: "0",
+        date: "2026-01-01",
+        time: "00:00",
+        notes: "Recuperación de contraseña",
+        subject: 'Recuperar Contraseña - Birraverde Studio',
+        html: emailHtml,
+        htmlAdmin: 'Nueva solicitud de restablecimiento de contraseña para ' + user.email,
+        textAdmin: 'Solicitud de contraseña.'
+      })
+    });
+
+    res.json({ success: true, message: 'Si el correo está registrado, recibirás un enlace de recuperación pronto.' });
+  } catch (e) {
+    console.error('Error en recuperar contraseña:', e);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
+app.post('/api/auth/reset-password', (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token y contraseña son obligatorios.' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+    }
+
+    const user = users.find(u => 
+      u.resetPasswordToken === token && 
+      u.resetPasswordExpires && 
+      u.resetPasswordExpires > Date.now()
+    );
+
+    if (!user) {
+      return res.status(400).json({ error: 'El enlace de recuperación es inválido o ha expirado.' });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(password, salt);
+
+    user.password = passwordHash;
+    delete user.resetPasswordToken;
+    delete user.resetPasswordExpires;
+    saveUsers();
+
+    res.json({ success: true, message: 'Contraseña restablecida con éxito.' });
+  } catch (e) {
+    console.error('Error al restablecer contraseña:', e);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
 
 app.post('/api/auth/register', (req, res) => {
   try {
