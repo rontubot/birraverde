@@ -311,11 +311,29 @@
                     <!-- Account Settings Panel -->
                     <div id="tab-account" class="tab-panel">
                         <h2 style="margin-bottom: 1.5rem; font-size: 1.75rem;">Detalles de mi Cuenta</h2>
-                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem;">
+                        <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; margin-top: 1.5rem; margin-bottom: 2rem;">
                             <p style="margin: 0.5rem 0;">Nombre: <strong id="accName">...</strong></p>
                             <p style="margin: 0.5rem 0;">Email: <strong id="accEmail">...</strong></p>
                             <p style="margin: 0.5rem 0;">Rol: <span id="accRole" class="role-badge">...</span></p>
                         </div>
+
+                        <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Cambiar Contraseña</h3>
+                        <form id="changePasswordForm" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; max-width: 450px;">
+                            <div style="margin-bottom: 1rem;">
+                                <label for="currentPassword" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Contraseña Actual</label>
+                                <input type="password" id="currentPassword" required style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit;" placeholder="••••••••">
+                            </div>
+                            <div style="margin-bottom: 1rem;">
+                                <label for="newPassword" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Nueva Contraseña</label>
+                                <input type="password" id="newPassword" required style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit;" placeholder="Mínimo 6 caracteres">
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <label for="confirmNewPassword" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Confirmar Nueva Contraseña</label>
+                                <input type="password" id="confirmNewPassword" required style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit;" placeholder="••••••••">
+                            </div>
+                            <div id="changePasswordMessage" style="display: none; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem; text-align: center;"></div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">Actualizar Contraseña</button>
+                        </form>
                     </div>
                 </section>
             </div>
@@ -706,6 +724,63 @@
                         (m.notes && m.notes.toLowerCase().includes(query))
                     );
                     renderAllMeetings(filtered);
+                });
+            }
+
+            // Change Password Logic
+            const changePasswordForm = document.getElementById('changePasswordForm');
+            const changePasswordMessage = document.getElementById('changePasswordMessage');
+            
+            if (changePasswordForm) {
+                changePasswordForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const currentPassword = document.getElementById('currentPassword').value;
+                    const newPassword = document.getElementById('newPassword').value;
+                    const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+                    
+                    changePasswordMessage.style.display = 'none';
+                    changePasswordMessage.className = '';
+                    
+                    if (newPassword !== confirmNewPassword) {
+                        changePasswordMessage.innerText = 'Las nuevas contraseñas no coinciden.';
+                        changePasswordMessage.style.display = 'block';
+                        changePasswordMessage.style.background = 'rgba(255, 68, 68, 0.08)';
+                        changePasswordMessage.style.color = '#ff4444';
+                        changePasswordMessage.style.border = '1px solid rgba(255, 68, 68, 0.2)';
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/auth/change-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ currentPassword, newPassword })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (!response.ok) {
+                            throw new Error(data.error || 'Error al actualizar contraseña.');
+                        }
+                        
+                        changePasswordMessage.innerText = data.message || 'Contraseña actualizada con éxito.';
+                        changePasswordMessage.style.display = 'block';
+                        changePasswordMessage.style.background = 'rgba(0, 255, 65, 0.08)';
+                        changePasswordMessage.style.color = '#00ff41';
+                        changePasswordMessage.style.border = '1px solid rgba(0, 255, 65, 0.2)';
+                        
+                        changePasswordForm.reset();
+                    } catch (err) {
+                        changePasswordMessage.innerText = err.message;
+                        changePasswordMessage.style.display = 'block';
+                        changePasswordMessage.style.background = 'rgba(255, 68, 68, 0.08)';
+                        changePasswordMessage.style.color = '#ff4444';
+                        changePasswordMessage.style.border = '1px solid rgba(255, 68, 68, 0.2)';
+                    }
                 });
             }
 

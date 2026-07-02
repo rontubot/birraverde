@@ -737,6 +737,39 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
   });
 });
 
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios.' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+    }
+
+    const user = await dbGetUserById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
+
+    const isPasswordValid = bcrypt.compareSync(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'La contraseña actual es incorrecta.' });
+    }
+
+    const salt = bcrypt.genSaltSync(10);
+    const passwordHash = bcrypt.hashSync(newPassword, salt);
+
+    await dbResetUserPassword(user.id, passwordHash);
+
+    res.json({ success: true, message: 'Contraseña actualizada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+});
+
 // --- RUTAS DE ADMINISTRACIÓN ---
 
 app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
