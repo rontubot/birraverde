@@ -132,6 +132,7 @@
         </div>
     </main>
 
+    <script src="/alerts.js"></script>
     <!-- Use CDN for GSAP to work without a server -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script>
@@ -395,7 +396,7 @@
 
                     if (response.ok) {
                         alert('✅ ¡Reserva solicitada con éxito! Revisa tu correo.');
-                        location.reload();
+                        setTimeout(() => location.reload(), 2000);
                     } else {
                         errorMessage.innerText = `⚠️ ${result.error || 'Error al procesar la reserva'}`;
                         errorMessage.style.display = 'block';
@@ -450,8 +451,8 @@
 
             const clearBtn = document.getElementById('clearLocalBookings');
             if (clearBtn) {
-                clearBtn.onclick = () => {
-                    if (confirm('¿Estás seguro de que deseas borrar tu historial de reservas locales? Esto liberará los horarios en tu navegador.')) {
+                clearBtn.onclick = async () => {
+                    if (await confirm('¿Estás seguro de que deseas borrar tu historial de reservas locales? Esto liberará los horarios en tu navegador.')) {
                         localStorage.removeItem('birraverde_bookings');
                         location.reload();
                     }

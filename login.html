@@ -85,8 +85,15 @@
         </div>
     </main>
 
+    <script src="/alerts.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Check if registered URL param exists to show toast alert
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('registered') === 'true') {
+                alert('✅ Registro exitoso. Ahora puedes iniciar sesión.');
+            }
+
             // Si ya está logueado, redirigir
             if (localStorage.getItem('birraverde_token')) {
                 window.location.href = '/perfil/';

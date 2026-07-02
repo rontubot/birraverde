@@ -340,6 +340,7 @@
         </div>
     </main>
 
+    <script src="/alerts.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('birraverde_token');
@@ -507,7 +508,7 @@
                         btn.onclick = async () => {
                             const id = btn.getAttribute('data-id');
                             const artist = btn.getAttribute('data-artist');
-                            if (confirm(`¿Estás seguro de que deseas eliminar la reserva de "${artist}"? Esta acción es definitiva.`)) {
+                             if (await confirm(`¿Estás seguro de que deseas eliminar la reserva de "${artist}"? Esta acción es definitiva.`)) {
                                 try {
                                     const response = await fetch(`/api/admin/bookings/${id}`, {
                                         method: 'DELETE',
@@ -589,7 +590,7 @@
                         btn.onclick = async () => {
                             const id = btn.getAttribute('data-id');
                             const subject = btn.getAttribute('data-subject');
-                            if (confirm(`¿Estás seguro de que deseas eliminar la reunión "${subject}"? Esta acción borrará también sus archivos adjuntos.`)) {
+                             if (await confirm(`¿Estás seguro de que deseas eliminar la reunión "${subject}"? Esta acción borrará también sus archivos adjuntos.`)) {
                                 try {
                                     const response = await fetch(`/api/admin/meetings/${id}`, {
                                         method: 'DELETE',

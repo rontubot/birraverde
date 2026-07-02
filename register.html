@@ -87,6 +87,7 @@
         </div>
     </main>
 
+    <script src="/alerts.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // Si ya está logueado, redirigir
@@ -118,8 +119,7 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        alert('✅ Registro exitoso. Ahora puedes iniciar sesión.');
-                        window.location.href = '/login.html';
+                        window.location.href = '/login.html?registered=true';
                     } else {
                         errorMessage.innerText = data.error || 'Error al registrarse.';
                         errorMessage.style.display = 'block';
