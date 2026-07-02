@@ -403,6 +403,14 @@ const requireRole = (allowedRoles) => {
   };
 };
 
+app.use((req, res, next) => {
+  console.log(`[REQUEST] ${new Date().toISOString()} - ${req.method} ${req.url}`);
+  res.on('finish', () => {
+    console.log(`[RESPONSE] ${req.method} ${req.url} - Status: ${res.statusCode}`);
+  });
+  next();
+});
+
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
 app.use(express.static(join(__dirname, 'dist')));
@@ -528,7 +536,8 @@ app.post('/api/booking', async (req, res) => {
 
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
         
-        await fetch(scriptURL, {
+        console.log(`[EMAIL] Dispatching booking email to Google Apps Script for ${email}...`);
+        const emailRes = await fetch(scriptURL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
@@ -540,6 +549,8 @@ app.post('/api/booking', async (req, res) => {
             textAdmin: `Nueva reserva de ${name} para el ${formattedDate}`
           })
         });
+        const resText = await emailRes.text();
+        console.log(`[EMAIL] Google Apps Script response status: ${emailRes.status}. Body: ${resText}`);
       } catch (err) {
         console.error('Error en proceso de email:', err);
       }
@@ -597,7 +608,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
     
-    await fetch(scriptURL, {
+    console.log(`[EMAIL] Dispatching forgot-password email to Google Apps Script for ${user.email}...`);
+    const emailRes = await fetch(scriptURL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: JSON.stringify({
@@ -616,6 +628,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         textAdmin: 'Solicitud de contraseña.'
       })
     });
+    const resText = await emailRes.text();
+    console.log(`[EMAIL] Google Apps Script response status: ${emailRes.status}. Body: ${resText}`);
 
     res.json({ success: true, message: 'Si el correo está registrado, recibirás un enlace de recuperación pronto.' });
   } catch (e) {
@@ -961,7 +975,8 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
 
         // 1. Enviar correo al Host/Convocante
-        await fetch(scriptURL, {
+        console.log(`[EMAIL] Dispatching host meeting email to Google Apps Script for host ${req.user.email}...`);
+        const hostRes = await fetch(scriptURL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain' },
           body: JSON.stringify({
@@ -980,6 +995,8 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
             textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
           })
         });
+        const hostResText = await hostRes.text();
+        console.log(`[EMAIL] Google Apps Script host response status: ${hostRes.status}. Body: ${hostResText}`);
 
         // 2. Enviar correo a cada invitado
         for (const guest of invitedUsers) {
@@ -995,7 +1012,8 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
               ${filesHtml}
             </div>`;
 
-          await fetch(scriptURL, {
+          console.log(`[EMAIL] Dispatching guest meeting email to Google Apps Script for guest ${guest.email}...`);
+          const guestRes = await fetch(scriptURL, {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
@@ -1014,6 +1032,8 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
               textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
             })
           });
+          const guestResText = await guestRes.text();
+          console.log(`[EMAIL] Google Apps Script guest response status: ${guestRes.status}. Body: ${guestResText}`);
         }
       } catch (err) {
         console.error('Error enviando correos de reunión interna:', err);
