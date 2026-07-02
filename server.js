@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import multer from 'multer';
+import pg from 'pg';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,26 +90,282 @@ const saveUsers = () => {
   }
 };
 
-// Asegurar Super Usuario por defecto
-const ensureAdminUser = () => {
-  const adminEmail = 'birraverdefilms@gmail.com';
-  const adminExists = users.some(u => u.email === adminEmail);
-  if (!adminExists) {
-    const salt = bcrypt.genSaltSync(10);
-    const passwordHash = bcrypt.hashSync('AdminBirra2026!', salt);
-    users.push({
-      id: 'admin-superuser',
-      name: 'Super Usuario Admin',
-      email: adminEmail,
-      password: passwordHash,
-      role: 'admin',
-      createdAt: new Date()
-    });
-    saveUsers();
-    console.log('🔴 Default Admin created: birraverdefilms@gmail.com / AdminBirra2026!');
+// --- CONFIGURACIÓN DE POSTGRESQL ---
+const isPostgres = !!process.env.DATABASE_URL;
+let pgPool = null;
+
+if (isPostgres) {
+  pgPool = new pg.Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+const initDatabase = async () => {
+  if (!isPostgres) {
+    // Asegurar Super Usuario por defecto en JSON si no se usa Postgres
+    const adminEmail = 'birraverdefilms@gmail.com';
+    const adminExists = users.some(u => u.email === adminEmail);
+    if (!adminExists) {
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHash = bcrypt.hashSync('AdminBirra2026!', salt);
+      users.push({
+        id: 'admin-superuser',
+        name: 'Super Usuario Admin',
+        email: adminEmail,
+        password: passwordHash,
+        role: 'admin',
+        createdAt: new Date()
+      });
+      saveUsers();
+      console.log('🔴 Default Admin created (JSON): birraverdefilms@gmail.com / AdminBirra2026!');
+    }
+    return;
+  }
+  
+  try {
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(100) PRIMARY KEY,
+        name VARCHAR(100),
+        email VARCHAR(100) UNIQUE,
+        password VARCHAR(255),
+        role VARCHAR(50),
+        "resetPasswordToken" VARCHAR(255),
+        "resetPasswordExpires" BIGINT,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS bookings (
+        id VARCHAR(100) PRIMARY KEY,
+        "userId" VARCHAR(100),
+        name VARCHAR(100),
+        email VARCHAR(100),
+        phone VARCHAR(100),
+        people INTEGER,
+        duration INTEGER,
+        date VARCHAR(50),
+        time VARCHAR(20),
+        notes TEXT,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS meetings (
+        id VARCHAR(100) PRIMARY KEY,
+        "hostId" VARCHAR(100),
+        "hostName" VARCHAR(100),
+        "hostEmail" VARCHAR(100),
+        subject VARCHAR(255),
+        duration INTEGER,
+        date VARCHAR(50),
+        time VARCHAR(20),
+        notes TEXT,
+        "invitedUsers" JSONB,
+        files JSONB,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('✅ PostgreSQL tables checked/created.');
+
+    const adminEmail = 'birraverdefilms@gmail.com';
+    const res = await pgPool.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
+    if (res.rowCount === 0) {
+      const salt = bcrypt.genSaltSync(10);
+      const passwordHash = bcrypt.hashSync('AdminBirra2026!', salt);
+      await pgPool.query(`
+        INSERT INTO users (id, name, email, password, role, "createdAt")
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, ['admin-superuser', 'Super Usuario Admin', adminEmail, passwordHash, 'admin', new Date()]);
+      console.log('🔴 Default Admin created in PostgreSQL: birraverdefilms@gmail.com / AdminBirra2026!');
+    }
+  } catch (err) {
+    console.error('❌ Error initializing PostgreSQL database:', err);
   }
 };
-ensureAdminUser();
+initDatabase();
+
+// --- STORAGE LAYER HELPERS ---
+
+const dbGetUsers = async () => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM users');
+    return res.rows;
+  }
+  return users;
+};
+
+const dbGetUserByEmail = async (email) => {
+  const emailLower = email.trim().toLowerCase();
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM users WHERE LOWER(email) = $1', [emailLower]);
+    return res.rows[0] || null;
+  }
+  return users.find(u => u.email.toLowerCase() === emailLower) || null;
+};
+
+const dbGetUserById = async (id) => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM users WHERE id = $1', [id]);
+    return res.rows[0] || null;
+  }
+  return users.find(u => u.id === id) || null;
+};
+
+const dbGetUserByToken = async (token) => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM users WHERE "resetPasswordToken" = $1 AND "resetPasswordExpires" > $2', [token, Date.now()]);
+    return res.rows[0] || null;
+  }
+  return users.find(u => u.resetPasswordToken === token && u.resetPasswordExpires && u.resetPasswordExpires > Date.now()) || null;
+};
+
+const dbCreateUser = async (user) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `INSERT INTO users (id, name, email, password, role, "createdAt") 
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [user.id, user.name, user.email, user.password, user.role, user.createdAt || new Date()]
+    );
+  } else {
+    users.push(user);
+    saveUsers();
+  }
+  return user;
+};
+
+const dbUpdateUserRole = async (userId, role) => {
+  if (isPostgres) {
+    await pgPool.query('UPDATE users SET role = $1 WHERE id = $2', [role, userId]);
+  } else {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      user.role = role;
+      saveUsers();
+    }
+  }
+};
+
+const dbUpdateUserToken = async (userId, token, expires) => {
+  if (isPostgres) {
+    await pgPool.query('UPDATE users SET "resetPasswordToken" = $1, "resetPasswordExpires" = $2 WHERE id = $3', [token, expires, userId]);
+  } else {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      user.resetPasswordToken = token;
+      user.resetPasswordExpires = expires;
+      saveUsers();
+    }
+  }
+};
+
+const dbResetUserPassword = async (userId, passwordHash) => {
+  if (isPostgres) {
+    await pgPool.query('UPDATE users SET password = $1, "resetPasswordToken" = NULL, "resetPasswordExpires" = NULL WHERE id = $2', [passwordHash, userId]);
+  } else {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      user.password = passwordHash;
+      delete user.resetPasswordToken;
+      delete user.resetPasswordExpires;
+      saveUsers();
+    }
+  }
+};
+
+const dbGetBookings = async () => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM bookings');
+    return res.rows;
+  }
+  return bookings;
+};
+
+const dbCreateBooking = async (booking) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `INSERT INTO bookings (id, "userId", name, email, phone, people, duration, date, time, notes, "createdAt") 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+      [booking.id, booking.userId, booking.name, booking.email, booking.phone, Number(booking.people), Number(booking.duration), booking.date, booking.time, booking.notes, booking.createdAt || new Date()]
+    );
+  } else {
+    bookings.push(booking);
+    saveBookings();
+  }
+  return booking;
+};
+
+const dbDeleteBooking = async (id) => {
+  if (isPostgres) {
+    const res = await pgPool.query('DELETE FROM bookings WHERE id = $1', [id]);
+    return res.rowCount > 0;
+  } else {
+    const index = bookings.findIndex(b => b.id === id);
+    if (index === -1) return false;
+    bookings.splice(index, 1);
+    saveBookings();
+    return true;
+  }
+};
+
+const dbGetMeetings = async () => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM meetings');
+    return res.rows.map(row => ({
+      ...row,
+      invitedUsers: typeof row.invitedUsers === 'string' ? JSON.parse(row.invitedUsers) : row.invitedUsers,
+      files: typeof row.files === 'string' ? JSON.parse(row.files) : row.files
+    }));
+  }
+  return meetings;
+};
+
+const dbCreateMeeting = async (meeting) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `INSERT INTO meetings (id, "hostId", "hostName", "hostEmail", subject, duration, date, time, notes, "invitedUsers", files, "createdAt") 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [
+        meeting.id, 
+        meeting.hostId, 
+        meeting.hostName, 
+        meeting.hostEmail, 
+        meeting.subject, 
+        Number(meeting.duration), 
+        meeting.date, 
+        meeting.time, 
+        meeting.notes, 
+        JSON.stringify(meeting.invitedUsers), 
+        JSON.stringify(meeting.files), 
+        meeting.createdAt || new Date()
+      ]
+    );
+  } else {
+    meetings.push(meeting);
+    saveMeetings();
+  }
+  return meeting;
+};
+
+const dbDeleteMeeting = async (id) => {
+  if (isPostgres) {
+    const res = await pgPool.query('DELETE FROM meetings WHERE id = $1 RETURNING files', [id]);
+    return { success: res.rowCount > 0, meeting: res.rows[0] || null };
+  } else {
+    const index = meetings.findIndex(m => m.id === id);
+    if (index === -1) return { success: false, meeting: null };
+    const meeting = meetings[index];
+    meetings.splice(index, 1);
+    saveMeetings();
+    return { success: true, meeting };
+  }
+};
 
 // Middlewares de autenticación y autorización
 const authenticateToken = (req, res, next) => {
@@ -119,16 +376,21 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, decodedUser) => {
+  jwt.verify(token, JWT_SECRET, async (err, decodedUser) => {
     if (err) {
       return res.status(403).json({ error: 'Token inválido o expirado.' });
     }
-    const user = users.find(u => u.id === decodedUser.id);
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    try {
+      const user = await dbGetUserById(decodedUser.id);
+      if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado.' });
+      }
+      req.user = user;
+      next();
+    } catch (e) {
+      console.error(e);
+      return res.status(500).json({ error: 'Error interno del servidor.' });
     }
-    req.user = user;
-    next();
   });
 };
 
@@ -158,10 +420,17 @@ const overlaps = (start1, duration1, start2, duration2) => {
   return Math.max(s1, s2) < Math.min(e1, e2);
 };
 
-app.get('/api/bookings', (req, res) => {
-  const publicBookings = bookings.map(b => ({ date: b.date, time: b.time, duration: b.duration }));
-  const internalMeetings = meetings.map(m => ({ date: m.date, time: m.time, duration: m.duration }));
-  res.json([...publicBookings, ...internalMeetings]);
+app.get('/api/bookings', async (req, res) => {
+  try {
+    const allB = await dbGetBookings();
+    const allM = await dbGetMeetings();
+    const publicBookings = allB.map(b => ({ date: b.date, time: b.time, duration: b.duration }));
+    const internalMeetings = allM.map(m => ({ date: m.date, time: m.time, duration: m.duration }));
+    res.json([...publicBookings, ...internalMeetings]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error del servidor.' });
+  }
 });
 
 app.post('/api/booking', async (req, res) => {
@@ -172,9 +441,12 @@ app.post('/api/booking', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios.' });
     }
 
-    const isOccupied = bookings.some(b => 
+    const allB = await dbGetBookings();
+    const allM = await dbGetMeetings();
+
+    const isOccupied = allB.some(b => 
       b.date === date && overlaps(b.time, b.duration, time, duration)
-    ) || meetings.some(m => 
+    ) || allM.some(m => 
       m.date === date && overlaps(m.time, m.duration, time, duration)
     );
 
@@ -209,8 +481,7 @@ app.post('/api/booking', async (req, res) => {
       createdAt: new Date()
     };
 
-    bookings.push(newBooking);
-    saveBookings();
+    await dbCreateBooking(newBooking);
 
     res.json({ success: true, message: 'Reserva registrada.' });
 
@@ -290,7 +561,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     const emailLower = email.trim().toLowerCase();
-    const user = users.find(u => u.email === emailLower);
+    const user = await dbGetUserByEmail(emailLower);
     
     // Por seguridad, no indicamos si el correo existe o no, pero solo lo enviamos si existe
     if (!user) {
@@ -299,9 +570,8 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
     // Generar token seguro
     const token = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hora
-    saveUsers();
+    const expires = Date.now() + 3600000; // 1 hora
+    await dbUpdateUserToken(user.id, token, expires);
 
     // Enlace de restablecimiento
     const resetURL = `${req.protocol}://${req.get('host')}/reset-password.html?token=${token}`;
@@ -354,7 +624,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   }
 });
 
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   try {
     const { token, password } = req.body;
     if (!token || !password) {
@@ -365,11 +635,7 @@ app.post('/api/auth/reset-password', (req, res) => {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
     }
 
-    const user = users.find(u => 
-      u.resetPasswordToken === token && 
-      u.resetPasswordExpires && 
-      u.resetPasswordExpires > Date.now()
-    );
+    const user = await dbGetUserByToken(token);
 
     if (!user) {
       return res.status(400).json({ error: 'El enlace de recuperación es inválido o ha expirado.' });
@@ -378,10 +644,7 @@ app.post('/api/auth/reset-password', (req, res) => {
     const salt = bcrypt.genSaltSync(10);
     const passwordHash = bcrypt.hashSync(password, salt);
 
-    user.password = passwordHash;
-    delete user.resetPasswordToken;
-    delete user.resetPasswordExpires;
-    saveUsers();
+    await dbResetUserPassword(user.id, passwordHash);
 
     res.json({ success: true, message: 'Contraseña restablecida con éxito.' });
   } catch (e) {
@@ -390,7 +653,7 @@ app.post('/api/auth/reset-password', (req, res) => {
   }
 });
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -398,7 +661,7 @@ app.post('/api/auth/register', (req, res) => {
     }
     
     const emailLower = email.trim().toLowerCase();
-    const userExists = users.some(u => u.email === emailLower);
+    const userExists = await dbGetUserByEmail(emailLower);
     if (userExists) {
       return res.status(409).json({ error: 'El correo electrónico ya está registrado.' });
     }
@@ -419,8 +682,7 @@ app.post('/api/auth/register', (req, res) => {
       createdAt: new Date()
     };
 
-    users.push(newUser);
-    saveUsers();
+    await dbCreateUser(newUser);
 
     res.json({ success: true, message: 'Usuario registrado con éxito.' });
   } catch (e) {
@@ -429,7 +691,7 @@ app.post('/api/auth/register', (req, res) => {
   }
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
@@ -437,7 +699,7 @@ app.post('/api/auth/login', (req, res) => {
     }
 
     const emailLower = email.trim().toLowerCase();
-    const user = users.find(u => u.email === emailLower);
+    const user = await dbGetUserByEmail(emailLower);
     if (!user) {
       return res.status(401).json({ error: 'Correo o contraseña incorrectos.' });
     }
@@ -477,65 +739,88 @@ app.get('/api/auth/me', authenticateToken, (req, res) => {
 
 // --- RUTAS DE ADMINISTRACIÓN ---
 
-app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker']), (req, res) => {
-  res.json(bookings);
+app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const allBookings = await dbGetBookings();
+    res.json(allBookings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener reservas.' });
+  }
 });
 
-app.delete('/api/admin/bookings/:id', authenticateToken, requireRole(['admin']), (req, res) => {
-  const bookingId = req.params.id;
-  const index = bookings.findIndex(b => b.id === bookingId);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Reserva no encontrada.' });
+app.delete('/api/admin/bookings/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const bookingId = req.params.id;
+    const deleted = await dbDeleteBooking(bookingId);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Reserva no encontrada.' });
+    }
+    res.json({ success: true, message: 'Reserva eliminada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar reserva.' });
   }
-
-  bookings.splice(index, 1);
-  saveBookings();
-  res.json({ success: true, message: 'Reserva eliminada con éxito.' });
 });
 
-app.get('/api/admin/users', authenticateToken, requireRole(['admin']), (req, res) => {
-  const sanitizedUsers = users.map(u => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    role: u.role
-  }));
-  res.json(sanitizedUsers);
+app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const allUsers = await dbGetUsers();
+    const sanitizedUsers = allUsers.map(u => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      role: u.role
+    }));
+    res.json(sanitizedUsers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener usuarios.' });
+  }
 });
 
-app.post('/api/admin/users/role', authenticateToken, requireRole(['admin']), (req, res) => {
-  const { userId, role } = req.body;
-  if (!userId || !role) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios.' });
-  }
+app.post('/api/admin/users/role', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+    if (!userId || !role) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+    }
 
-  const allowedRoles = ['client', 'worker', 'admin'];
-  if (!allowedRoles.includes(role)) {
-    return res.status(400).json({ error: 'Rol no permitido.' });
-  }
+    const allowedRoles = ['client', 'worker', 'admin'];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ error: 'Rol no permitido.' });
+    }
 
-  const user = users.find(u => u.id === userId);
-  if (!user) {
-    return res.status(404).json({ error: 'Usuario no encontrado.' });
-  }
+    const user = await dbGetUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado.' });
+    }
 
-  if (user.email === 'birraverdefilms@gmail.com') {
-    return res.status(403).json({ error: 'No se puede modificar el rol del Super Usuario.' });
-  }
+    if (user.email === 'birraverdefilms@gmail.com') {
+      return res.status(403).json({ error: 'No se puede modificar el rol del Super Usuario.' });
+    }
 
-  user.role = role;
-  saveUsers();
-  res.json({ success: true, message: 'Rol de usuario actualizado con éxito.' });
+    await dbUpdateUserRole(userId, role);
+    res.json({ success: true, message: 'Rol de usuario actualizado con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar rol.' });
+  }
 });
 
 // --- RUTAS DE REUNIONES INTERNAS ---
 
-app.get('/api/internal/users', authenticateToken, requireRole(['admin', 'worker']), (req, res) => {
-  const internalUsers = users
-    .filter(u => u.role === 'admin' || u.role === 'worker')
-    .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
-  res.json(internalUsers);
+app.get('/api/internal/users', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const allUsers = await dbGetUsers();
+    const internalUsers = allUsers
+      .filter(u => u.role === 'admin' || u.role === 'worker')
+      .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
+    res.json(internalUsers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener personal.' });
+  }
 });
 
 app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worker']), upload.array('files'), async (req, res) => {
@@ -552,14 +837,16 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
       try {
         invitedUsers = typeof invitedUsersRaw === 'string' ? JSON.parse(invitedUsersRaw) : invitedUsersRaw;
       } catch (e) {
-        // Fallback si no viene como JSON válido
         invitedUsers = [];
       }
     }
 
-    const isOccupied = bookings.some(b => 
+    const allB = await dbGetBookings();
+    const allM = await dbGetMeetings();
+
+    const isOccupied = allB.some(b => 
       b.date === date && overlaps(b.time, b.duration, time, duration)
-    ) || meetings.some(m => 
+    ) || allM.some(m => 
       m.date === date && overlaps(m.time, m.duration, time, duration)
     );
 
@@ -583,13 +870,12 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
       date,
       time,
       notes: notes || '',
-      invitedUsers, // Array de { id, name, email }
+      invitedUsers,
       files: uploadedFiles,
       createdAt: new Date()
     };
 
-    meetings.push(newMeeting);
-    saveMeetings();
+    await dbCreateMeeting(newMeeting);
 
     res.json({ success: true, message: 'Reunión interna agendada con éxito.' });
 
@@ -707,37 +993,44 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
   }
 });
 
-app.get('/api/admin/meetings', authenticateToken, requireRole(['admin', 'worker']), (req, res) => {
-  res.json(meetings);
+app.get('/api/admin/meetings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const allMeetings = await dbGetMeetings();
+    res.json(allMeetings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener reuniones.' });
+  }
 });
 
-app.delete('/api/admin/meetings/:id', authenticateToken, requireRole(['admin']), (req, res) => {
-  const meetingId = req.params.id;
-  const index = meetings.findIndex(m => m.id === meetingId);
-  
-  if (index === -1) {
-    return res.status(404).json({ error: 'Reunión no encontrada.' });
-  }
+app.delete('/api/admin/meetings/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const meetingId = req.params.id;
+    const { success, meeting } = await dbDeleteMeeting(meetingId);
+    
+    if (!success || !meeting) {
+      return res.status(404).json({ error: 'Reunión no encontrada.' });
+    }
 
-  const meeting = meetings[index];
-
-  // Eliminar archivos del disco
-  if (meeting.files && meeting.files.length > 0) {
-    meeting.files.forEach(f => {
-      const filePath = join(UPLOADS_DIR, f.filename);
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch (err) {
-          console.error(`Error deleting file ${filePath}:`, err);
+    // Eliminar archivos del disco
+    if (meeting.files && meeting.files.length > 0) {
+      meeting.files.forEach(f => {
+        const filePath = join(UPLOADS_DIR, f.filename);
+        if (fs.existsSync(filePath)) {
+          try {
+            fs.unlinkSync(filePath);
+          } catch (err) {
+            console.error(`Error deleting file ${filePath}:`, err);
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
-  meetings.splice(index, 1);
-  saveMeetings();
-  res.json({ success: true, message: 'Reunión interna eliminada con éxito.' });
+    res.json({ success: true, message: 'Reunión interna eliminada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar reunión.' });
+  }
 });
 
 app.use((req, res) => {

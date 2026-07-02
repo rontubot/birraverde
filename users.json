@@ -1,0 +1,10 @@
+[
+  {
+    "id": "admin-superuser",
+    "name": "Super Usuario Admin",
+    "email": "birraverdefilms@gmail.com",
+    "password": "$2b$10$tVZbP/anFmC.5gv/utFY6OgJ0wzE3q4Crk26M6Q2eaL4WXgPXIo86",
+    "role": "admin",
+    "createdAt": "2026-07-02T21:02:56.876Z"
+  }
+]
