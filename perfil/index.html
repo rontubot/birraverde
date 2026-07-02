@@ -190,6 +190,7 @@
                     <div class="nav-menu">
                         <button class="nav-item active" data-target="tab-bookings" id="navBookingsBtn">Mis Reservas</button>
                         <button class="nav-item" data-target="tab-all-bookings" id="navAllBookingsBtn" style="display: none;">Reservas de Sala</button>
+                        <button class="nav-item" data-target="tab-internal-meetings" id="navInternalBookingsBtn" style="display: none;">Reuniones Internas</button>
                         <button class="nav-item" data-target="tab-users" id="navUsersBtn" style="display: none;">Gestión de Personal</button>
                         <button class="nav-item" data-target="tab-account">Mi Cuenta</button>
                     </div>
@@ -250,6 +251,38 @@
                         </div>
                     </div>
 
+                    <!-- Internal Meetings Panel (Admin/Worker) -->
+                    <div id="tab-internal-meetings" class="tab-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h2 style="margin: 0; font-size: 1.75rem;">Reuniones Internas</h2>
+                            <a href="/reunion-interna/" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Nueva Reunión Interna</a>
+                        </div>
+                        <div class="search-bar" style="margin-bottom: 1.5rem;">
+                            <input type="text" id="meetingSearchInput" placeholder="Buscar por asunto, convocante, fecha...">
+                        </div>
+                        <div style="overflow-x: auto;">
+                            <table class="booking-table">
+                                <thead>
+                                    <tr>
+                                        <th>Convocante</th>
+                                        <th>Asunto</th>
+                                        <th>Fecha/Hora</th>
+                                        <th>Duración</th>
+                                        <th>Invitados</th>
+                                        <th>Archivos Adjuntos</th>
+                                        <th>Notas</th>
+                                        <th class="th-meeting-actions" style="display: none;">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="internalMeetingsList">
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; color: var(--text-muted);">Cargando reuniones...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
                     <!-- Users Panel (Admin only) -->
                     <div id="tab-users" class="tab-panel">
                         <h2 style="margin-bottom: 1.5rem; font-size: 1.75rem;">Gestión de Personal</h2>
@@ -301,6 +334,7 @@
 
             let currentUser = cachedUser;
             let allBookingsCached = [];
+            let allMeetingsCached = [];
 
             // Setup profile info
             const renderProfileInfo = () => {
@@ -322,6 +356,7 @@
                 // Adjust visible menu items based on role
                 if (currentUser.role === 'admin' || currentUser.role === 'worker') {
                     document.getElementById('navAllBookingsBtn').style.display = 'block';
+                    document.getElementById('navInternalBookingsBtn').style.display = 'block';
                     document.getElementById('navBookingsBtn').style.display = 'none'; // Workers/Admin don't need "My Bookings"
                     
                     // Set active tab to "Reservas de Sala" initially for workers/admins
@@ -476,6 +511,88 @@
                 }
             };
 
+            // Fetch All Meetings (Admin/Worker)
+            const fetchAllMeetings = async () => {
+                try {
+                    const response = await fetch('/api/admin/meetings', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        allMeetingsCached = await response.json();
+                        renderAllMeetings(allMeetingsCached);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+
+            const renderAllMeetings = (meetings) => {
+                const listEl = document.getElementById('internalMeetingsList');
+                if (meetings.length === 0) {
+                    listEl.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No hay reuniones registradas.</td></tr>`;
+                    return;
+                }
+
+                listEl.innerHTML = meetings.map(m => {
+                    const invitedText = m.invitedUsers && m.invitedUsers.length > 0 
+                        ? m.invitedUsers.map(u => `${u.name}`).join(', ') 
+                        : 'Ninguno';
+
+                    const filesLinks = m.files && m.files.length > 0
+                        ? m.files.map(f => `<a href="${f.path}" target="_blank" style="color: var(--primary); text-decoration: underline; display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">${f.originalname}</a>`).join('')
+                        : '<span style="color: var(--text-muted); font-size: 0.85rem;">Ninguno</span>';
+
+                    return `
+                        <tr>
+                            <td>
+                                <strong>${m.hostName}</strong><br>
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">${m.hostEmail}</span>
+                            </td>
+                            <td><strong>${m.subject}</strong></td>
+                            <td>${m.date} a las <span style="color: var(--primary);">${m.time}</span></td>
+                            <td>${m.duration}h</td>
+                            <td style="font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${invitedText}">${invitedText}</td>
+                            <td>${filesLinks}</td>
+                            <td style="color: var(--text-muted); font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${m.notes || '-'}">${m.notes || '-'}</td>
+                            ${currentUser.role === 'admin' ? `
+                                <td>
+                                    <button class="btn-danger delete-meeting-btn" data-id="${m.id}" data-subject="${m.subject}">Eliminar</button>
+                                </td>
+                            ` : ''}
+                        </tr>
+                    `;
+                }).join('');
+
+                // Hook up delete buttons
+                if (currentUser.role === 'admin') {
+                    document.querySelectorAll('.th-meeting-actions').forEach(el => el.style.display = 'table-cell');
+                    
+                    document.querySelectorAll('.delete-meeting-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const id = btn.getAttribute('data-id');
+                            const subject = btn.getAttribute('data-subject');
+                            if (confirm(`¿Estás seguro de que deseas eliminar la reunión "${subject}"? Esta acción borrará también sus archivos adjuntos.`)) {
+                                try {
+                                    const response = await fetch(`/api/admin/meetings/${id}`, {
+                                        method: 'DELETE',
+                                        headers: { 'Authorization': `Bearer ${token}` }
+                                    });
+                                    if (response.ok) {
+                                        alert('✅ Reunión eliminada con éxito.');
+                                        fetchAllMeetings();
+                                    } else {
+                                        const resData = await response.json();
+                                        alert(`❌ Error: ${resData.error}`);
+                                    }
+                                } catch (e) {
+                                    alert('❌ Error de conexión al intentar eliminar.');
+                                }
+                            }
+                        };
+                    });
+                }
+            };
+
             // Fetch All Users (Admin only)
             const fetchUsers = async () => {
                 try {
@@ -541,6 +658,7 @@
             const loadDataBasedOnRole = () => {
                 if (currentUser.role === 'admin' || currentUser.role === 'worker') {
                     fetchAllBookings();
+                    fetchAllMeetings();
                     if (currentUser.role === 'admin') {
                         fetchUsers();
                     }
@@ -567,6 +685,27 @@
                         (b.notes && b.notes.toLowerCase().includes(query))
                     );
                     renderAllBookings(filtered);
+                });
+            }
+
+            // Search logic for all meetings list
+            const meetingSearchInput = document.getElementById('meetingSearchInput');
+            if (meetingSearchInput) {
+                meetingSearchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    if (!query) {
+                        renderAllMeetings(allMeetingsCached);
+                        return;
+                    }
+
+                    const filtered = allMeetingsCached.filter(m => 
+                        m.subject.toLowerCase().includes(query) ||
+                        m.hostName.toLowerCase().includes(query) ||
+                        m.hostEmail.toLowerCase().includes(query) ||
+                        m.date.toLowerCase().includes(query) ||
+                        (m.notes && m.notes.toLowerCase().includes(query))
+                    );
+                    renderAllMeetings(filtered);
                 });
             }
 

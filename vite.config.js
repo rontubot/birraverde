@@ -14,6 +14,7 @@ export default defineConfig({
         perfil: resolve(__dirname, 'perfil/index.html'),
         forgotPassword: resolve(__dirname, 'forgot-password.html'),
         resetPassword: resolve(__dirname, 'reset-password.html'),
+        reunionInterna: resolve(__dirname, 'reunion-interna/index.html'),
       },
     },
   },

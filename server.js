@@ -5,6 +5,7 @@ import fs from 'fs';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import multer from 'multer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -13,6 +14,23 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const JWT_SECRET = 'birraverde_super_secret_jwt_2026';
+
+// Configurar almacenamiento estático para /uploads y el middleware multer
+const UPLOADS_DIR = join(__dirname, 'uploads');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOADS_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname);
+  }
+});
+const upload = multer({ storage: storage });
 
 const DATA_FILE = join(__dirname, 'bookings.json');
 let bookings = [];
@@ -30,6 +48,25 @@ const saveBookings = () => {
     fs.writeFileSync(DATA_FILE, JSON.stringify(bookings, null, 2));
   } catch (e) {
     console.error('Error saving bookings file:', e);
+  }
+};
+
+const MEETINGS_FILE = join(__dirname, 'reuniones.json');
+let meetings = [];
+
+if (fs.existsSync(MEETINGS_FILE)) {
+  try {
+    meetings = JSON.parse(fs.readFileSync(MEETINGS_FILE, 'utf8'));
+  } catch (e) {
+    console.error('Error reading meetings file:', e);
+  }
+}
+
+const saveMeetings = () => {
+  try {
+    fs.writeFileSync(MEETINGS_FILE, JSON.stringify(meetings, null, 2));
+  } catch (e) {
+    console.error('Error saving meetings file:', e);
   }
 };
 
@@ -105,6 +142,7 @@ const requireRole = (allowedRoles) => {
 };
 
 app.use(express.json());
+app.use('/uploads', express.static(join(__dirname, 'uploads')));
 app.use(express.static(join(__dirname, 'dist')));
 
 const timeToMinutes = (timeStr) => {
@@ -121,7 +159,9 @@ const overlaps = (start1, duration1, start2, duration2) => {
 };
 
 app.get('/api/bookings', (req, res) => {
-  res.json(bookings.map(b => ({ date: b.date, time: b.time, duration: b.duration })));
+  const publicBookings = bookings.map(b => ({ date: b.date, time: b.time, duration: b.duration }));
+  const internalMeetings = meetings.map(m => ({ date: m.date, time: m.time, duration: m.duration }));
+  res.json([...publicBookings, ...internalMeetings]);
 });
 
 app.post('/api/booking', async (req, res) => {
@@ -134,6 +174,8 @@ app.post('/api/booking', async (req, res) => {
 
     const isOccupied = bookings.some(b => 
       b.date === date && overlaps(b.time, b.duration, time, duration)
+    ) || meetings.some(m => 
+      m.date === date && overlaps(m.time, m.duration, time, duration)
     );
 
     if (isOccupied) {
@@ -485,6 +527,217 @@ app.post('/api/admin/users/role', authenticateToken, requireRole(['admin']), (re
   user.role = role;
   saveUsers();
   res.json({ success: true, message: 'Rol de usuario actualizado con éxito.' });
+});
+
+// --- RUTAS DE REUNIONES INTERNAS ---
+
+app.get('/api/internal/users', authenticateToken, requireRole(['admin', 'worker']), (req, res) => {
+  const internalUsers = users
+    .filter(u => u.role === 'admin' || u.role === 'worker')
+    .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
+  res.json(internalUsers);
+});
+
+app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worker']), upload.array('files'), async (req, res) => {
+  try {
+    const { subject, duration, date, time, notes } = req.body;
+    let invitedUsersRaw = req.body.invitedUsers;
+
+    if (!subject || !duration || !date || !time) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+    }
+
+    let invitedUsers = [];
+    if (invitedUsersRaw) {
+      try {
+        invitedUsers = typeof invitedUsersRaw === 'string' ? JSON.parse(invitedUsersRaw) : invitedUsersRaw;
+      } catch (e) {
+        // Fallback si no viene como JSON válido
+        invitedUsers = [];
+      }
+    }
+
+    const isOccupied = bookings.some(b => 
+      b.date === date && overlaps(b.time, b.duration, time, duration)
+    ) || meetings.some(m => 
+      m.date === date && overlaps(m.time, m.duration, time, duration)
+    );
+
+    if (isOccupied) {
+      return res.status(409).json({ error: 'Parte del horario seleccionado ya está ocupado.' });
+    }
+
+    const uploadedFiles = (req.files || []).map(f => ({
+      filename: f.filename,
+      originalname: f.originalname,
+      path: `/uploads/${f.filename}`
+    }));
+
+    const newMeeting = {
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 5),
+      hostId: req.user.id,
+      hostName: req.user.name,
+      hostEmail: req.user.email,
+      subject,
+      duration,
+      date,
+      time,
+      notes: notes || '',
+      invitedUsers, // Array de { id, name, email }
+      files: uploadedFiles,
+      createdAt: new Date()
+    };
+
+    meetings.push(newMeeting);
+    saveMeetings();
+
+    res.json({ success: true, message: 'Reunión interna agendada con éxito.' });
+
+    // Envío de correos asíncronos en segundo plano
+    (async () => {
+      try {
+        const [year, month, day] = date.split('-');
+        const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        const formattedDate = `${parseInt(day)} de ${months[parseInt(month) - 1]} ${year}`;
+
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+        const createHtml = (userName, detailsHtml) => `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #000; color: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #222;">
+            <div style="padding: 30px; text-align: center; border-bottom: 2px solid #00ff41;">
+              <h1 style="color: #00ff41; margin: 0; letter-spacing: 4px; font-size: 24px;">BIRRAVERDE</h1>
+            </div>
+            <div style="padding: 30px;">
+              <h2 style="font-weight: 300;">Hola, ${userName}</h2>
+              ${detailsHtml}
+              <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #222; text-align: center; font-size: 10px; color: #555;">
+                Birraverde Studio | Buenos Aires
+              </div>
+            </div>
+          </div>`;
+
+        let filesHtml = '';
+        if (uploadedFiles.length > 0) {
+          filesHtml = `<p style="margin: 15px 0 5px 0; color: #00ff41;">Archivos adjuntos para la reunión:</p><ul style="margin: 0; padding-left: 20px;">`;
+          uploadedFiles.forEach(f => {
+            filesHtml += `<li><a href="${baseUrl}/uploads/${f.filename}" style="color: #00ff41; text-decoration: underline;" target="_blank">${f.originalname}</a></li>`;
+          });
+          filesHtml += `</ul>`;
+        }
+
+        const invitedNamesList = invitedUsers.map(u => `<strong>${u.name}</strong> (${u.email})`).join(', ') || 'Ninguno';
+
+        const hostDetails = `
+          <p style="color: #ccc;">Has convocado una nueva reunión interna:</p>
+          <div style="background: #111; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+            <p style="margin: 5px 0;">Asunto: <strong>${subject}</strong></p>
+            <p style="margin: 5px 0;">Fecha: <strong>${formattedDate}</strong></p>
+            <p style="margin: 5px 0;">Hora: <strong>${time}</strong></p>
+            <p style="margin: 5px 0;">Duración: <strong>${duration} hora(s)</strong></p>
+            <p style="margin: 5px 0;">Invitados: ${invitedNamesList}</p>
+            <p style="margin: 5px 0;">Notas: ${notes || 'Ninguna'}</p>
+            ${filesHtml}
+          </div>`;
+
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+
+        // 1. Enviar correo al Host/Convocante
+        await fetch(scriptURL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({
+            token: "BIRRAVERDE_2024_SECURE",
+            name: req.user.name,
+            email: req.user.email,
+            phone: "Interno",
+            people: "1",
+            duration,
+            date,
+            time,
+            notes: notes || '',
+            subject: `Reunión Interna Convocada: ${subject}`,
+            html: createHtml(req.user.name, hostDetails),
+            htmlAdmin: 'Nueva reunión interna registrada por ' + req.user.name,
+            textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
+          })
+        });
+
+        // 2. Enviar correo a cada invitado
+        for (const guest of invitedUsers) {
+          const guestDetails = `
+            <p style="color: #ccc;">Has sido invitado a una reunión interna convocada por <strong>${req.user.name}</strong>:</p>
+            <div style="background: #111; padding: 20px; border-radius: 8px; border: 1px solid #333;">
+              <p style="margin: 5px 0;">Asunto: <strong>${subject}</strong></p>
+              <p style="margin: 5px 0;">Fecha: <strong>${formattedDate}</strong></p>
+              <p style="margin: 5px 0;">Hora: <strong>${time}</strong></p>
+              <p style="margin: 5px 0;">Duración: <strong>${duration} hora(s)</strong></p>
+              <p style="margin: 5px 0;">Convocante: <strong>${req.user.name}</strong> (${req.user.email})</p>
+              <p style="margin: 5px 0;">Notas del convocante: ${notes || 'Ninguna'}</p>
+              ${filesHtml}
+            </div>`;
+
+          await fetch(scriptURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+              token: "BIRRAVERDE_2024_SECURE",
+              name: guest.name,
+              email: guest.email,
+              phone: "Interno",
+              people: "1",
+              duration,
+              date,
+              time,
+              notes: notes || '',
+              subject: `Invitación a Reunión Interna: ${subject}`,
+              html: createHtml(guest.name, guestDetails),
+              htmlAdmin: 'Invitación a reunión interna para ' + guest.name,
+              textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
+            })
+          });
+        }
+      } catch (err) {
+        console.error('Error enviando correos de reunión interna:', err);
+      }
+    })();
+
+  } catch (error) {
+    console.error('Error al agendar reunión interna:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'Error del servidor.' });
+  }
+});
+
+app.get('/api/admin/meetings', authenticateToken, requireRole(['admin', 'worker']), (req, res) => {
+  res.json(meetings);
+});
+
+app.delete('/api/admin/meetings/:id', authenticateToken, requireRole(['admin']), (req, res) => {
+  const meetingId = req.params.id;
+  const index = meetings.findIndex(m => m.id === meetingId);
+  
+  if (index === -1) {
+    return res.status(404).json({ error: 'Reunión no encontrada.' });
+  }
+
+  const meeting = meetings[index];
+
+  // Eliminar archivos del disco
+  if (meeting.files && meeting.files.length > 0) {
+    meeting.files.forEach(f => {
+      const filePath = join(UPLOADS_DIR, f.filename);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          console.error(`Error deleting file ${filePath}:`, err);
+        }
+      }
+    });
+  }
+
+  meetings.splice(index, 1);
+  saveMeetings();
+  res.json({ success: true, message: 'Reunión interna eliminada con éxito.' });
 });
 
 app.use((req, res) => {
