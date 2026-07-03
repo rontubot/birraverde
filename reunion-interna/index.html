@@ -487,10 +487,9 @@
                 gsap.to('.reveal', { opacity: 1, y: 0, duration: 1, stagger: 0.2, ease: 'power3.out' }); 
             }
 
-            // Check role for Reunión Interna nav link
-            const userStr = localStorage.getItem('birraverde_user');
-            if (userStr) {
-                try {
+             // Check role for Reunión Interna nav link
+             if (userStr) {
+                 try {
                     const user = JSON.parse(userStr);
                     if (user.role === 'admin' || user.role === 'worker') {
                         const navLinksUl = document.getElementById('navLinks');
