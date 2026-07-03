@@ -203,7 +203,13 @@
                             const li = document.createElement('li');
                             li.id = 'navInternalMeetingLink';
                             li.innerHTML = '<a href="/reunion-interna/">Reunión Interna</a>';
-                            navLinksUl.appendChild(li);
+                            
+                            const authLink = document.getElementById('navAuthLink');
+                            if (authLink && authLink.parentElement && authLink.parentElement.parentElement === navLinksUl) {
+                                navLinksUl.insertBefore(li, authLink.parentElement);
+                            } else {
+                                navLinksUl.appendChild(li);
+                            }
                         }
                     }
                 } catch(e) {}
