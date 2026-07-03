@@ -153,6 +153,44 @@
             .profile-container {
                 grid-template-columns: 1fr;
             }
+            .booking-table, .booking-table thead, .booking-table tbody, .booking-table th, .booking-table td, .booking-table tr {
+                display: block !important;
+                width: 100% !important;
+            }
+            .booking-table thead {
+                display: none !important;
+            }
+            .booking-table tr {
+                margin-bottom: 1.5rem !important;
+                background: rgba(255, 255, 255, 0.02) !important;
+                border: 1px solid var(--glass-border) !important;
+                border-radius: 12px !important;
+                padding: 1.2rem !important;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+            }
+            .booking-table td {
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+                padding: 0.8rem 0 !important;
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                text-align: right !important;
+                font-size: 0.9rem !important;
+                flex-wrap: wrap !important;
+                gap: 0.5rem !important;
+            }
+            .booking-table td:last-child {
+                border-bottom: none !important;
+            }
+            .booking-table td::before {
+                content: attr(data-label) !important;
+                font-weight: 700 !important;
+                color: var(--primary) !important;
+                text-align: left !important;
+                text-transform: uppercase !important;
+                font-size: 0.75rem !important;
+                letter-spacing: 0.05em !important;
+            }
         }
     </style>
 </head>
@@ -450,10 +488,10 @@
                     const allBookings = [...relevantServer, ...localBookings];
                     listEl.innerHTML = allBookings.map(b => `
                         <tr>
-                            <td><strong>${b.date}</strong></td>
-                            <td style="color: var(--primary);">${b.time}</td>
-                            <td>${b.duration} hora(s)</td>
-                            <td style="color: var(--text-muted); font-size: 0.9rem;">${b.notes || '-'}</td>
+                            <td data-label="Fecha"><strong>${b.date}</strong></td>
+                            <td data-label="Hora" style="color: var(--primary);">${b.time}</td>
+                            <td data-label="Duración">${b.duration} hora(s)</td>
+                            <td data-label="Notas" style="color: var(--text-muted); font-size: 0.9rem;">${b.notes || '-'}</td>
                         </tr>
                     `).join('');
                 } catch (err) {
@@ -485,17 +523,17 @@
 
                 listEl.innerHTML = bookings.map(b => `
                     <tr>
-                        <td><strong>${b.name}</strong></td>
-                        <td style="font-size: 0.85rem; line-height: 1.3;">
+                        <td data-label="Cliente"><strong>${b.name}</strong></td>
+                        <td data-label="Contacto" style="font-size: 0.85rem; line-height: 1.3;">
                             Email: ${b.email}<br>
                             Tel: ${b.phone}
                         </td>
-                        <td>${b.date} a las <span style="color: var(--primary);">${b.time}</span></td>
-                        <td>${b.duration}h</td>
-                        <td>${b.people}</td>
-                        <td style="color: var(--text-muted); font-size: 0.85rem;">${b.notes || '-'}</td>
+                        <td data-label="Fecha/Hora">${b.date} a las <span style="color: var(--primary);">${b.time}</span></td>
+                        <td data-label="Duración">${b.duration}h</td>
+                        <td data-label="Personas">${b.people}</td>
+                        <td data-label="Notas" style="color: var(--text-muted); font-size: 0.85rem;">${b.notes || '-'}</td>
                         ${currentUser.role === 'admin' ? `
-                            <td>
+                            <td data-label="Acción">
                                 <button class="btn-danger delete-booking-btn" data-id="${b.id}" data-artist="${b.name}">Eliminar</button>
                             </td>
                         ` : ''}
@@ -563,18 +601,18 @@
 
                     return `
                         <tr>
-                            <td>
+                            <td data-label="Convocante">
                                 <strong>${m.hostName}</strong><br>
                                 <span style="font-size: 0.8rem; color: var(--text-muted);">${m.hostEmail}</span>
                             </td>
-                            <td><strong>${m.subject}</strong></td>
-                            <td>${m.date} a las <span style="color: var(--primary);">${m.time}</span></td>
-                            <td>${m.duration}h</td>
-                            <td style="font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${invitedText}">${invitedText}</td>
-                            <td>${filesLinks}</td>
-                            <td style="color: var(--text-muted); font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${m.notes || '-'}">${m.notes || '-'}</td>
+                            <td data-label="Asunto"><strong>${m.subject}</strong></td>
+                            <td data-label="Fecha/Hora">${m.date} a las <span style="color: var(--primary);">${m.time}</span></td>
+                            <td data-label="Duración">${m.duration}h</td>
+                            <td data-label="Invitados" style="font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${invitedText}">${invitedText}</td>
+                            <td data-label="Archivos">${filesLinks}</td>
+                            <td data-label="Notas" style="color: var(--text-muted); font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${m.notes || '-'}">${m.notes || '-'}</td>
                             ${currentUser.role === 'admin' ? `
-                                <td>
+                                <td data-label="Acción">
                                     <button class="btn-danger delete-meeting-btn" data-id="${m.id}" data-subject="${m.subject}">Eliminar</button>
                                 </td>
                             ` : ''}
@@ -624,14 +662,14 @@
                         
                         listEl.innerHTML = users.map(u => `
                             <tr>
-                                <td><strong>${u.name}</strong></td>
-                                <td>${u.email}</td>
-                                <td>
+                                <td data-label="Nombre"><strong>${u.name}</strong></td>
+                                <td data-label="Email">${u.email}</td>
+                                <td data-label="Rol Actual">
                                     <span class="role-badge ${u.role === 'admin' ? 'role-admin' : (u.role === 'worker' ? 'role-worker' : 'role-client')}">
                                         ${u.role}
                                     </span>
                                 </td>
-                                <td>
+                                <td data-label="Modificar Rol">
                                     ${u.email === 'birraverdefilms@gmail.com' ? '<span style="color: var(--text-muted); font-size:0.85rem;">Super Usuario (Bloqueado)</span>' : `
                                         <select class="form-select role-select" data-id="${u.id}">
                                             <option value="client" ${u.role === 'client' ? 'selected' : ''}>Cliente</option>

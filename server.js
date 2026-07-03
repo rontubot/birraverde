@@ -951,11 +951,18 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
 
         let filesHtml = '';
         if (uploadedFiles.length > 0) {
-          filesHtml = `<p style="margin: 15px 0 5px 0; color: #00ff41;">Archivos adjuntos para la reunión:</p><ul style="margin: 0; padding-left: 20px;">`;
+          filesHtml = `
+            <div style="margin-top: 20px; border-top: 1px dashed #333; padding-top: 15px;">
+              <p style="margin: 0 0 10px 0; color: #00ff41; font-weight: bold; font-size: 14px;">📂 Archivos Adjuntos para la Reunión:</p>`;
           uploadedFiles.forEach(f => {
-            filesHtml += `<li><a href="${baseUrl}/uploads/${f.filename}" style="color: #00ff41; text-decoration: underline;" target="_blank">${f.originalname}</a></li>`;
+            filesHtml += `
+              <div style="margin-bottom: 8px;">
+                <a href="${baseUrl}/uploads/${f.filename}" target="_blank" style="display: inline-block; background-color: #00ff41; color: #000000; padding: 10px 18px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; border: 1px solid #00ff41;">
+                  📥 Descargar: ${f.originalname}
+                </a>
+              </div>`;
           });
-          filesHtml += `</ul>`;
+          filesHtml += `</div>`;
         }
 
         const invitedNamesList = invitedUsers.map(u => `<strong>${u.name}</strong> (${u.email})`).join(', ') || 'Ninguno';
@@ -990,8 +997,9 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
             time,
             notes: notes || '',
             subject: `Reunión Interna Convocada: ${subject}`,
+            subjectAdmin: `Reunión Interna: ${subject}`,
             html: createHtml(req.user.name, hostDetails),
-            htmlAdmin: 'Nueva reunión interna registrada por ' + req.user.name,
+            htmlAdmin: createHtml(req.user.name, hostDetails),
             textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
           })
         });
@@ -1028,7 +1036,7 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
               notes: notes || '',
               subject: `Invitación a Reunión Interna: ${subject}`,
               html: createHtml(guest.name, guestDetails),
-              htmlAdmin: 'Invitación a reunión interna para ' + guest.name,
+              skipAdminEmail: true,
               textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
             })
           });
