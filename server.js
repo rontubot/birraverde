@@ -534,7 +534,7 @@ app.post('/api/booking', async (req, res) => {
             <p style="margin: 5px 0;">Notas: ${notes || 'Ninguna'}</p>
           </div>`;
 
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+        const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
         
         console.log(`[EMAIL] Dispatching booking email to Google Apps Script for ${email}...`);
         const emailRes = await fetch(scriptURL, {
@@ -606,7 +606,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         </div>
       </div>`;
 
-    const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+    const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
     
     console.log(`[EMAIL] Dispatching forgot-password email to Google Apps Script for ${user.email}...`);
     const emailRes = await fetch(scriptURL, {
@@ -972,7 +972,7 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
             ${filesHtml}
           </div>`;
 
-        const scriptURL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+        const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
 
         // 1. Enviar correo al Host/Convocante
         console.log(`[EMAIL] Dispatching host meeting email to Google Apps Script for host ${req.user.email}...`);
