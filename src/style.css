@@ -110,16 +110,16 @@ h1, h2, h3 {
   box-shadow: 0 10px 20px rgba(0, 255, 65, 0.2);
 }
 
-.btn-outline {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  color: #ffffff;
+.btn-outline, .nav-links .btn-outline {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  color: #ffffff !important;
 }
 
-.btn-outline:hover {
-  background: #ffffff;
-  border-color: #ffffff;
-  color: #000000;
+.btn-outline:hover, .nav-links .btn-outline:hover {
+  background: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #000000 !important;
 }
 
 /* Navbar */
@@ -341,6 +341,10 @@ input:focus, select:focus, textarea:focus {
 }
 
 @media (max-width: 768px) {
+  nav {
+    z-index: 150 !important;
+  }
+
   .hamburger {
     display: -webkit-flex;
     display: flex;
