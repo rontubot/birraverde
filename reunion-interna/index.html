@@ -487,6 +487,23 @@
                 gsap.to('.reveal', { opacity: 1, y: 0, duration: 1, stagger: 0.2, ease: 'power3.out' }); 
             }
 
+            // Check role for Reunión Interna nav link
+            const userStr = localStorage.getItem('birraverde_user');
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    if (user.role === 'admin' || user.role === 'worker') {
+                        const navLinksUl = document.getElementById('navLinks');
+                        if (navLinksUl && !document.getElementById('navInternalMeetingLink')) {
+                            const li = document.createElement('li');
+                            li.id = 'navInternalMeetingLink';
+                            li.innerHTML = '<a href="/reunion-interna/">Reunión Interna</a>';
+                            navLinksUl.appendChild(li);
+                        }
+                    }
+                } catch(e) {}
+            }
+
             // Burger Menu toggle
             const hb = document.getElementById('hamburger');
             const nl = document.getElementById('navLinks');

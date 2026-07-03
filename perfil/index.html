@@ -203,7 +203,7 @@
             <a href="/" class="logo">
                 <img src="/birraverde.png" alt="Birraverde">
             </a>
-            <ul class="nav-links">
+            <ul class="nav-links" id="navLinks">
                 <li><a href="/">Inicio</a></li>
                 <li><a href="/servicios/">Servicios</a></li>
                 <li><a href="/sello/">Sello</a></li>
@@ -415,6 +415,14 @@
                     document.getElementById('navAllBookingsBtn').style.display = 'block';
                     document.getElementById('navInternalBookingsBtn').style.display = 'block';
                     document.getElementById('navBookingsBtn').style.display = 'none'; // Workers/Admin don't need "My Bookings"
+                    
+                    const navLinksUl = document.getElementById('navLinks');
+                    if (navLinksUl && !document.getElementById('navInternalMeetingLink')) {
+                        const li = document.createElement('li');
+                        li.id = 'navInternalMeetingLink';
+                        li.innerHTML = '<a href="/reunion-interna/">Reunión Interna</a>';
+                        navLinksUl.appendChild(li);
+                    }
                     
                     // Set active tab to "Reservas de Sala" initially for workers/admins
                     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));

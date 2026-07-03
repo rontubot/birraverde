@@ -22,7 +22,7 @@
     <nav>
         <div class="container">
             <a href="index.html" class="logo">Birraverde</a>
-            <ul class="nav-links">
+            <ul class="nav-links" id="navLinks">
                 <li><a href="index.html">Inicio</a></li>
                 <li><a href="servicios.html">Servicios</a></li>
                 <li><a href="sello.html">Sello</a></li>
@@ -478,6 +478,23 @@
                     authLink.innerText = 'Iniciar Sesión';
                     authLink.href = '/login.html';
                 }
+            }
+
+            // Check role for Reunión Interna nav link
+            const userStr = localStorage.getItem('birraverde_user');
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    if (user.role === 'admin' || user.role === 'worker') {
+                        const navLinksUl = document.getElementById('navLinks');
+                        if (navLinksUl && !document.getElementById('navInternalMeetingLink')) {
+                            const li = document.createElement('li');
+                            li.id = 'navInternalMeetingLink';
+                            li.innerHTML = '<a href="/reunion-interna/">Reunión Interna</a>';
+                            navLinksUl.appendChild(li);
+                        }
+                    }
+                } catch(e) {}
             }
         });
     </script>
