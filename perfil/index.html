@@ -209,8 +209,8 @@
                 <li><a href="/servicios/">Servicios</a></li>
                 <li><a href="/sello/">Sello</a></li>
                 <li><a href="/sala/">Reservar Sala</a></li>
+                <li><button id="logoutBtn" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Cerrar Sesión</button></li>
             </ul>
-            <button id="logoutBtn" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Cerrar Sesión</button>
         </div>
     </nav>
 
@@ -422,7 +422,13 @@
                         const li = document.createElement('li');
                         li.id = 'navInternalMeetingLink';
                         li.innerHTML = '<a href="/reunion-interna/">Reunión Interna</a>';
-                        navLinksUl.appendChild(li);
+                        
+                        const logoutBtn = document.getElementById('logoutBtn');
+                        if (logoutBtn && logoutBtn.parentElement && logoutBtn.parentElement.parentElement === navLinksUl) {
+                            navLinksUl.insertBefore(li, logoutBtn.parentElement);
+                        } else {
+                            navLinksUl.appendChild(li);
+                        }
                     }
                     
                     // Set active tab to "Reservas de Sala" initially for workers/admins

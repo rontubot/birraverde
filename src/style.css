@@ -111,15 +111,15 @@ h1, h2, h3 {
 }
 
 .btn-outline {
-  background: transparent;
-  border: 1px solid var(--glass-border);
-  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
 }
 
 .btn-outline:hover {
-  background: var(--glass);
-  border-color: var(--primary);
-  color: var(--primary);
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
 }
 
 /* Navbar */
@@ -396,6 +396,14 @@ input:focus, select:focus, textarea:focus {
 
   nav .btn-outline {
     display: none;
+  }
+
+  .nav-links .btn-outline {
+    display: inline-block !important;
+    text-align: center;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem !important;
   }
 
   .hero h1 {
