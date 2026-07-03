@@ -411,6 +411,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Disable caching for HTML files to prevent outdated deployments
+app.use((req, res, next) => {
+  const isHtml = req.path.endsWith('.html') || (!req.path.includes('.') && !req.path.startsWith('/api/'));
+  if (isHtml) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
 
