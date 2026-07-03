@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reserva de Sala | Birraverde</title>
     <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
     <style>
         .btn-primary:disabled {
             background: rgba(255, 255, 255, 0.05) !important;
@@ -30,7 +31,7 @@
                 <li><a href="/sello/">Sello</a></li>
                 <li><a href="/sala/" style="color: var(--primary);">Reservar Sala</a></li>
             </ul>
-            <a href="/login.html" id="navAuthLink" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Iniciar Sesión</a>
+            <a href="/login" id="navAuthLink" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Iniciar Sesión</a>
             <button class="hamburger" id="hamburger" aria-label="Menú">
                 <span></span><span></span><span></span>
             </button>
@@ -448,7 +449,7 @@
                     authLink.href = '/perfil/';
                 } else {
                     authLink.innerText = 'Iniciar Sesión';
-                    authLink.href = '/login.html';
+                    authLink.href = '/login';
                 }
             }
 

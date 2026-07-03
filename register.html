@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrarse | Birraverde</title>
     <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
     <style>
         .register-card {
             background: var(--bg-card);
@@ -80,7 +81,7 @@
                     </button>
 
                     <p style="text-align: center; font-size: 0.9rem; color: var(--text-muted);">
-                        ¿Ya tienes una cuenta? <a href="/login.html" style="color: var(--primary); text-decoration: none; font-weight: 600;">Inicia Sesión</a>
+                        ¿Ya tienes una cuenta? <a href="/login" style="color: var(--primary); text-decoration: none; font-weight: 600;">Inicia Sesión</a>
                     </p>
                 </form>
             </div>
@@ -119,7 +120,7 @@
                     const data = await response.json();
 
                     if (response.ok) {
-                        window.location.href = '/login.html?registered=true';
+                        window.location.href = '/login?registered=true';
                     } else {
                         errorMessage.innerText = data.error || 'Error al registrarse.';
                         errorMessage.style.display = 'block';

@@ -6,6 +6,7 @@
     <title>Birraverde | Productora Audiovisual & Sello Discográfico</title>
     <meta name="description" content="Productora audiovisual especializada en video clips, contenido para redes e identidades de marca. Ahora también tu sello discográfico.">
     <link rel="stylesheet" href="src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
 </head>
 <body>
     <div class="bg-gradient"></div>
@@ -20,7 +21,7 @@
                 <li><a href="/servicios/">Servicios</a></li>
                 <li><a href="/sello/">Sello</a></li>
                 <li><a href="/sala/">Reservar Sala</a></li>
-                <li><a href="/login.html" id="navAuthLink" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Iniciar Sesión</a></li>
+                <li><a href="/login" id="navAuthLink" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Iniciar Sesión</a></li>
             </ul>
             <button class="hamburger" id="hamburger" aria-label="Menú">
                 <span></span><span></span><span></span>
@@ -188,7 +189,7 @@
                     authLink.href = '/perfil/';
                 } else {
                     authLink.innerText = 'Iniciar Sesión';
-                    authLink.href = '/login.html';
+                    authLink.href = '/login';
                 }
             }
 

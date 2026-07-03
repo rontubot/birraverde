@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mi Perfil | Birraverde</title>
     <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
     <style>
         .profile-container {
             margin-top: 2rem;
@@ -385,7 +386,7 @@
             const cachedUser = JSON.parse(localStorage.getItem('birraverde_user') || '{}');
 
             if (!token) {
-                window.location.href = '/login.html';
+                window.location.href = '/login';
                 return;
             }
 
@@ -455,7 +456,7 @@
                     } else if (response.status === 401) {
                         // Expired token
                         localStorage.removeItem('birraverde_token');
-                        window.location.href = '/login.html';
+                        window.location.href = '/login';
                     }
                 } catch (e) {
                     console.error('Error fetching user status:', e);

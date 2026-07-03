@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nueva Reunión Interna | Birraverde</title>
     <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
     <style>
         /* Custom scrollbar for invited users container */
         #invitedUsersList::-webkit-scrollbar {
@@ -226,7 +227,7 @@
 
             // Seguridad en el cliente: redirección inmediata si no tiene permisos
             if (!token || !userStr) {
-                window.location.href = '/login.html';
+                window.location.href = '/login';
                 return;
             }
 
@@ -238,7 +239,7 @@
                     return;
                 }
             } catch (e) {
-                window.location.href = '/login.html';
+                window.location.href = '/login';
                 return;
             }
 

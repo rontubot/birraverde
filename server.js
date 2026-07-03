@@ -413,6 +413,19 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 app.use('/uploads', express.static(join(__dirname, 'uploads')));
+
+// Clean URLs middleware: redirect .html pages to extensionless paths
+app.use((req, res, next) => {
+  if (req.path === '/index.html') {
+    return res.redirect(301, '/' + (Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : ''));
+  }
+  if (req.path.endsWith('.html') && !req.path.startsWith('/api/')) {
+    const cleanPath = req.path.slice(0, -5);
+    return res.redirect(301, cleanPath + (Object.keys(req.query).length ? '?' + new URLSearchParams(req.query).toString() : ''));
+  }
+  next();
+});
+
 app.use(express.static(join(__dirname, 'dist')));
 
 const timeToMinutes = (timeStr) => {
@@ -1095,7 +1108,12 @@ app.delete('/api/admin/meetings/:id', authenticateToken, requireRole(['admin']),
 });
 
 app.use((req, res) => {
-  const requestedPath = req.path.endsWith('/') ? req.path + 'index.html' : req.path;
+  let requestedPath = req.path;
+  if (requestedPath.endsWith('/')) {
+    requestedPath += 'index.html';
+  } else if (!requestedPath.includes('.') && !requestedPath.startsWith('/api/')) {
+    requestedPath += '.html';
+  }
   const filePath = join(__dirname, 'dist', requestedPath);
   res.sendFile(filePath, (err) => {
     if (err) res.sendFile(join(__dirname, 'dist', 'index.html'));
