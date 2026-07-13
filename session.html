@@ -203,8 +203,12 @@
                 <li><a href="/perfil/" style="color: var(--primary);">Mi Perfil</a></li>
                 <li><button id="logoutBtn" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Cerrar Sesión</button></li>
             </ul>
+            <button class="hamburger" id="hamburger" aria-label="Menú">
+                <span></span><span></span><span></span>
+            </button>
         </div>
     </nav>
+    <div class="nav-overlay" id="navOverlay"></div>
 
     <main class="details-container">
         <div class="details-card">
@@ -286,6 +290,30 @@
                     localStorage.removeItem('birraverde_user');
                     window.location.href = '/';
                 };
+            }
+
+            // Hamburger menu toggle
+            const hb = document.getElementById('hamburger');
+            const nl = document.getElementById('navLinks');
+            const no = document.getElementById('navOverlay');
+            if (hb) {
+                hb.onclick = () => {
+                    hb.classList.toggle('active');
+                    nl.classList.toggle('open');
+                    no.classList.toggle('active');
+                };
+                no.onclick = () => {
+                    hb.classList.remove('active');
+                    nl.classList.remove('open');
+                    no.classList.remove('active');
+                };
+                nl.querySelectorAll('a, button').forEach(link => {
+                    link.addEventListener('click', () => {
+                        hb.classList.remove('active');
+                        nl.classList.remove('open');
+                        no.classList.remove('active');
+                    });
+                });
             }
 
             const urlParams = new URLSearchParams(window.location.search);

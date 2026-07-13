@@ -312,32 +312,47 @@ input:focus, select:focus, textarea:focus {
 .hamburger {
   display: none;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 5px;
   cursor: pointer;
   z-index: 200;
-  padding: 8px;
-  background: none;
-  border: none;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.hamburger:hover {
+  background: rgba(0, 255, 65, 0.08);
+  border-color: rgba(0, 255, 65, 0.2);
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.1);
 }
 
 .hamburger span {
-  width: 24px;
+  width: 18px;
   height: 2px;
   background: var(--text-main);
   border-radius: 2px;
-  transition: var(--transition);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hamburger.active span:nth-child(1) {
-  transform: rotate(45deg) translate(5px, 5px);
+  transform: translateY(7px) rotate(45deg);
+  background: var(--primary);
 }
 
 .hamburger.active span:nth-child(2) {
   opacity: 0;
+  transform: scale(0);
 }
 
 .hamburger.active span:nth-child(3) {
-  transform: rotate(-45deg) translate(5px, -5px);
+  transform: translateY(-7px) rotate(-45deg);
+  background: var(--primary);
 }
 
 @media (max-width: 768px) {
@@ -346,41 +361,66 @@ input:focus, select:focus, textarea:focus {
   }
 
   .hamburger {
-    display: -webkit-flex;
     display: flex;
   }
 
   .nav-links {
     position: fixed;
-    top: 0;
-    right: -100%;
-    width: 75%;
-    max-width: 320px;
-    height: 100vh;
-    background: rgba(10, 10, 10, 0.98);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    -webkit-flex-direction: column;
+    top: 90px;
+    left: 5%;
+    right: 5%;
+    width: 90%;
+    height: auto;
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    background: rgba(10, 10, 10, 0.85);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     flex-direction: column;
-    padding: 6rem 2rem 2rem;
-    gap: 1.5rem;
-    -webkit-transition: right 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    transition: right 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    border-left: 1px solid var(--glass-border);
+    padding: 0 !important;
+    gap: 1.25rem;
+    transition: max-height 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease, visibility 0.4s;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
     z-index: 150;
-    overflow-y: auto;
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(0, 255, 65, 0.03);
   }
 
   .nav-links li {
-    margin-bottom: 0.5rem;
+    opacity: 0;
+    transform: translateY(-15px);
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-bottom: 0 !important;
+    width: 100%;
+    text-align: center;
   }
 
   .nav-links.open {
-    right: 0;
+    max-height: 500px;
+    opacity: 1;
+    visibility: visible;
+    padding: 2.5rem 2rem !important;
   }
 
+  .nav-links.open li {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .nav-links.open li:nth-child(1) { transition-delay: 0.05s; }
+  .nav-links.open li:nth-child(2) { transition-delay: 0.1s; }
+  .nav-links.open li:nth-child(3) { transition-delay: 0.15s; }
+  .nav-links.open li:nth-child(4) { transition-delay: 0.2s; }
+  .nav-links.open li:nth-child(5) { transition-delay: 0.25s; }
+  .nav-links.open li:nth-child(6) { transition-delay: 0.3s; }
+  .nav-links.open li:nth-child(7) { transition-delay: 0.35s; }
+
   .nav-links a {
-    font-size: 1.2rem;
+    font-size: 1.15rem;
+    display: block;
+    padding: 0.5rem 0;
   }
 
   /* Mobile overlay */
@@ -391,12 +431,17 @@ input:focus, select:focus, textarea:focus {
     right: 0;
     bottom: 0;
     left: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 140;
+    transition: opacity 0.3s ease;
+    opacity: 0;
   }
 
   .nav-overlay.active {
     display: block;
+    opacity: 1;
   }
 
   nav .btn-outline {
@@ -407,8 +452,9 @@ input:focus, select:focus, textarea:focus {
     display: inline-block !important;
     text-align: center;
     width: 100%;
-    margin-top: 1.5rem;
+    margin-top: 1rem;
     padding: 0.75rem 1.5rem !important;
+    border-radius: 100px;
   }
 
   .hero h1 {
