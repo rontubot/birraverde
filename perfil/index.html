@@ -673,6 +673,14 @@
 
                     // Format dates
                     const allBookings = [...relevantServer, ...localBookings];
+                    
+                    // Sort descending (most recent first)
+                    allBookings.sort((a, b) => {
+                        const dtA = `${a.date}T${a.time || '00:00'}`;
+                        const dtB = `${b.date}T${b.time || '00:00'}`;
+                        return dtB.localeCompare(dtA);
+                    });
+
                     listEl.innerHTML = allBookings.map(b => `
                         <div class="session-card">
                             <span class="session-card-badge">Reserva</span>
@@ -703,6 +711,12 @@
                     });
                     if (response.ok) {
                         allBookingsCached = await response.json();
+                        // Sort descending (most recent first)
+                        allBookingsCached.sort((a, b) => {
+                            const dtA = `${a.date}T${a.time || '00:00'}`;
+                            const dtB = `${b.date}T${b.time || '00:00'}`;
+                            return dtB.localeCompare(dtA);
+                        });
                         renderAllBookings(allBookingsCached);
                     }
                 } catch (err) {
@@ -788,6 +802,12 @@
                     });
                     if (response.ok) {
                         allMeetingsCached = await response.json();
+                        // Sort descending (most recent first)
+                        allMeetingsCached.sort((a, b) => {
+                            const dtA = `${a.date}T${a.time || '00:00'}`;
+                            const dtB = `${b.date}T${b.time || '00:00'}`;
+                            return dtB.localeCompare(dtA);
+                        });
                         renderAllMeetings(allMeetingsCached);
                     }
                 } catch (err) {
