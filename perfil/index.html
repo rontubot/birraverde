@@ -1230,6 +1230,7 @@
                                 if (response.ok) {
                                     alert('✅ Banda eliminada.');
                                     fetchBands();
+                                    fetchMe();
                                 } else {
                                     const data = await response.json();
                                     alert(`❌ Error: ${data.error || 'No se pudo eliminar.'}`);
@@ -1408,6 +1409,7 @@
                             alert(data.message || 'Banda guardada con éxito.');
                             bandModal.classList.remove('active');
                             fetchBands();
+                            fetchMe();
                         } else {
                             alert(`❌ Error: ${data.error || 'Ocurrió un problema.'}`);
                         }
