@@ -1594,27 +1594,35 @@ app.post('/api/upload-drive', authenticateToken, upload.single('file'), async (r
       return res.status(400).json({ error: 'El enlace de Google Drive de tu banda es inválido. Solicita al administrador que lo corrija.' });
     }
     
-    const fileBuffer = fs.readFileSync(req.file.path);
-    const fileContentBase64 = fileBuffer.toString('base64');
+    // Read directly to base64 encoding to avoid buffer duplication
+    let fileContentBase64 = fs.readFileSync(req.file.path, 'base64');
+    
+    // Delete local temp file immediately before the slow fetch call to Google Apps Script
+    // to free disk storage space early
+    if (fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
     
     const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
     
     console.log(`[DRIVE UPLOAD] Uploading file ${req.file.originalname} (${req.file.size} bytes) for band ${userBand.name}...`);
     
+    // Construct request payload and dereference large strings as early as possible
+    const payload = JSON.stringify({
+      token: "BIRRAVERDE_2024_SECURE",
+      action: "upload",
+      folderId: folderId,
+      fileName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      fileContent: fileContentBase64
+    });
+    fileContentBase64 = null; // Help GC reclaim memory
+    
     const scriptRes = await fetch(scriptURL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        token: "BIRRAVERDE_2024_SECURE",
-        action: "upload",
-        folderId: folderId,
-        fileName: req.file.originalname,
-        mimeType: req.file.mimetype,
-        fileContent: fileContentBase64
-      })
+      body: payload
     });
-    
-    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     
     if (scriptRes.ok) {
       const data = await scriptRes.json();
@@ -1648,6 +1656,12 @@ app.use((req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🟢 Server on port ${PORT}`);
 });
+
+// Configure server timeouts for large upload handling (up to 10 minutes)
+server.timeout = 600000;
+server.headersTimeout = 610000;
+server.requestTimeout = 600000;
+server.keepAliveTimeout = 60000;
