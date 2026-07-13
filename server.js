@@ -90,6 +90,25 @@ const saveUsers = () => {
   }
 };
 
+const BANDS_FILE = join(__dirname, 'bands.json');
+let bands = [];
+
+if (fs.existsSync(BANDS_FILE)) {
+  try {
+    bands = JSON.parse(fs.readFileSync(BANDS_FILE, 'utf8'));
+  } catch (e) {
+    console.error('Error reading bands file:', e);
+  }
+}
+
+const saveBands = () => {
+  try {
+    fs.writeFileSync(BANDS_FILE, JSON.stringify(bands, null, 2));
+  } catch (e) {
+    console.error('Error saving bands file:', e);
+  }
+};
+
 // --- CONFIGURACIÓN DE POSTGRESQL ---
 const isPostgres = !!process.env.DATABASE_URL;
 let pgPool = null;
@@ -168,6 +187,16 @@ const initDatabase = async () => {
         notes TEXT,
         "invitedUsers" JSONB,
         files JSONB,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS bands (
+        id VARCHAR(100) PRIMARY KEY,
+        name VARCHAR(255) UNIQUE,
+        "driveLink" TEXT,
+        members JSONB,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -440,6 +469,76 @@ const dbUpdateMeeting = async (id, meeting) => {
       saveMeetings();
     }
   }
+};
+
+const dbGetBands = async () => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM bands');
+    return res.rows.map(row => ({
+      ...row,
+      members: typeof row.members === 'string' ? JSON.parse(row.members) : (row.members || [])
+    }));
+  }
+  return bands;
+};
+
+const dbGetBandById = async (id) => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM bands WHERE id = $1', [id]);
+    if (res.rows[0]) {
+      const row = res.rows[0];
+      return {
+        ...row,
+        members: typeof row.members === 'string' ? JSON.parse(row.members) : (row.members || [])
+      };
+    }
+    return null;
+  }
+  return bands.find(b => b.id === id) || null;
+};
+
+const dbCreateBand = async (band) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `INSERT INTO bands (id, name, "driveLink", members) VALUES ($1, $2, $3, $4)`,
+      [band.id, band.name, band.driveLink || '', JSON.stringify(band.members || [])]
+    );
+  } else {
+    bands.push(band);
+    saveBands();
+  }
+};
+
+const dbUpdateBand = async (id, band) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `UPDATE bands SET name = $1, "driveLink" = $2, members = $3 WHERE id = $4`,
+      [band.name, band.driveLink || '', JSON.stringify(band.members || []), id]
+    );
+  } else {
+    const idx = bands.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      bands[idx] = { ...bands[idx], ...band };
+      saveBands();
+    }
+  }
+};
+
+const dbDeleteBand = async (id) => {
+  if (isPostgres) {
+    await pgPool.query('DELETE FROM bands WHERE id = $1', [id]);
+  } else {
+    const idx = bands.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      bands.splice(idx, 1);
+      saveBands();
+    }
+  }
+};
+
+const dbGetUserBand = async (userId) => {
+  const allBands = await dbGetBands();
+  return allBands.find(b => (b.members || []).includes(userId)) || null;
 };
 
 // Middlewares de autenticación y autorización
@@ -839,15 +938,22 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/me', authenticateToken, (req, res) => {
-  res.json({
-    user: {
-      id: req.user.id,
-      name: req.user.name,
-      email: req.user.email,
-      role: req.user.role
-    }
-  });
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const userBand = await dbGetUserBand(req.user.id);
+    res.json({
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role,
+        band: userBand ? { id: userBand.id, name: userBand.name, driveLink: userBand.driveLink } : null
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener sesión de usuario.' });
+  }
 });
 
 app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
@@ -888,7 +994,29 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
   try {
     const allBookings = await dbGetBookings();
-    res.json(allBookings);
+    const allBands = await dbGetBands();
+    const allUsers = await dbGetUsers();
+    
+    const bookingsWithBands = allBookings.map(b => {
+      let user = null;
+      if (b.userId) {
+        user = allUsers.find(u => u.id === b.userId);
+      } else if (b.email) {
+        user = allUsers.find(u => u.email.toLowerCase() === b.email.toLowerCase());
+      }
+      
+      let bandName = '';
+      if (user) {
+        const band = allBands.find(band => (band.members || []).includes(user.id));
+        if (band) {
+          bandName = band.name;
+        }
+      }
+      
+      return { ...b, bandName };
+    });
+    
+    res.json(bookingsWithBands);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener reservas.' });
@@ -921,7 +1049,22 @@ app.get('/api/admin/bookings/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Acceso denegado.' });
     }
     
-    res.json(booking);
+    let user = null;
+    if (booking.userId) {
+      user = await dbGetUserById(booking.userId);
+    } else if (booking.email) {
+      user = await dbGetUserByEmail(booking.email);
+    }
+    
+    let bandName = '';
+    if (user) {
+      const band = await dbGetUserBand(user.id);
+      if (band) {
+        bandName = band.name;
+      }
+    }
+    
+    res.json({ ...booking, bandName });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener reserva.' });
@@ -942,15 +1085,21 @@ app.put('/api/admin/bookings/:id', authenticateToken, requireRole(['admin', 'wor
   }
 });
 
-app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (req, res) => {
+app.get('/api/admin/users', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
   try {
     const allUsers = await dbGetUsers();
-    const sanitizedUsers = allUsers.map(u => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      role: u.role
-    }));
+    const allBands = await dbGetBands();
+    
+    const sanitizedUsers = allUsers.map(u => {
+      const band = allBands.find(b => (b.members || []).includes(u.id));
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        bandName: band ? band.name : ''
+      };
+    });
     res.json(sanitizedUsers);
   } catch (err) {
     console.error(err);
@@ -1189,7 +1338,32 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
 app.get('/api/admin/meetings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
   try {
     const allMeetings = await dbGetMeetings();
-    res.json(allMeetings);
+    const allBands = await dbGetBands();
+    
+    const meetingsWithBands = allMeetings.map(m => {
+      let hostBandName = '';
+      const hostBand = allBands.find(band => (band.members || []).includes(m.hostId));
+      if (hostBand) {
+        hostBandName = hostBand.name;
+      }
+      
+      const invitedWithBands = (m.invitedUsers || []).map(invited => {
+        let guestBandName = '';
+        const guestBand = allBands.find(band => (band.members || []).includes(invited.id));
+        if (guestBand) {
+          guestBandName = guestBand.name;
+        }
+        return { ...invited, bandName: guestBandName };
+      });
+      
+      return { 
+        ...m, 
+        hostBandName, 
+        invitedUsers: invitedWithBands 
+      };
+    });
+    
+    res.json(meetingsWithBands);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener reuniones.' });
@@ -1241,7 +1415,27 @@ app.get('/api/admin/meetings/:id', authenticateToken, async (req, res) => {
       return res.status(403).json({ error: 'Acceso denegado.' });
     }
     
-    res.json(meeting);
+    const allBands = await dbGetBands();
+    let hostBandName = '';
+    const hostBand = allBands.find(band => (band.members || []).includes(meeting.hostId));
+    if (hostBand) {
+      hostBandName = hostBand.name;
+    }
+    
+    const invitedWithBands = (meeting.invitedUsers || []).map(invited => {
+      let guestBandName = '';
+      const guestBand = allBands.find(band => (band.members || []).includes(invited.id));
+      if (guestBand) {
+        guestBandName = guestBand.name;
+      }
+      return { ...invited, bandName: guestBandName };
+    });
+    
+    res.json({
+      ...meeting,
+      hostBandName,
+      invitedUsers: invitedWithBands
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al obtener reunión.' });
@@ -1259,6 +1453,185 @@ app.put('/api/admin/meetings/:id', authenticateToken, requireRole(['admin', 'wor
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al actualizar reunión.' });
+  }
+});
+
+// --- BANDAS CRUD ENDPOINTS ---
+
+app.get('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const allBands = await dbGetBands();
+    const allUsers = await dbGetUsers();
+    
+    const bandsWithDetails = allBands.map(b => {
+      const resolvedMembers = (b.members || []).map(memberId => {
+        const u = allUsers.find(user => user.id === memberId);
+        return u ? { id: u.id, name: u.name, email: u.email, phone: u.phone || '' } : null;
+      }).filter(Boolean);
+      return { ...b, resolvedMembers };
+    });
+    
+    res.json(bandsWithDetails);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener bandas.' });
+  }
+});
+
+app.get('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const band = await dbGetBandById(req.params.id);
+    if (!band) {
+      return res.status(404).json({ error: 'Banda no encontrada.' });
+    }
+    res.json(band);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener banda.' });
+  }
+});
+
+app.post('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const { name, members, driveLink } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'El nombre de la banda es obligatorio.' });
+    }
+    
+    const allBands = await dbGetBands();
+    if (allBands.some(b => b.name.toLowerCase() === name.toLowerCase())) {
+      return res.status(400).json({ error: 'Ya existe una banda con ese nombre.' });
+    }
+    
+    const newId = 'band-' + crypto.randomBytes(8).toString('hex');
+    const band = {
+      id: newId,
+      name,
+      members: members || [],
+      driveLink: req.user.role === 'admin' ? (driveLink || '') : '',
+      createdAt: new Date()
+    };
+    
+    await dbCreateBand(band);
+    res.status(201).json({ success: true, message: 'Banda creada con éxito.', band });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear banda.' });
+  }
+});
+
+app.put('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const { name, members, driveLink } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: 'El nombre de la banda es obligatorio.' });
+    }
+    
+    const band = await dbGetBandById(req.params.id);
+    if (!band) {
+      return res.status(404).json({ error: 'Banda no encontrada.' });
+    }
+    
+    const allBands = await dbGetBands();
+    if (allBands.some(b => b.id !== req.params.id && b.name.toLowerCase() === name.toLowerCase())) {
+      return res.status(400).json({ error: 'Ya existe otra banda con ese nombre.' });
+    }
+    
+    const updatedBand = {
+      name,
+      members: members || [],
+      driveLink: req.user.role === 'admin' ? (driveLink || '') : (band.driveLink || '')
+    };
+    
+    await dbUpdateBand(req.params.id, updatedBand);
+    res.json({ success: true, message: 'Banda actualizada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar banda.' });
+  }
+});
+
+app.delete('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const band = await dbGetBandById(req.params.id);
+    if (!band) {
+      return res.status(404).json({ error: 'Banda no encontrada.' });
+    }
+    await dbDeleteBand(req.params.id);
+    res.json({ success: true, message: 'Banda eliminada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar banda.' });
+  }
+});
+
+// --- GOOGLE DRIVE UPLOAD BRIDGE ---
+
+app.post('/api/upload-drive', authenticateToken, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se cargó ningún archivo.' });
+    }
+    
+    const allBands = await dbGetBands();
+    const userBand = allBands.find(b => (b.members || []).includes(req.user.id));
+    
+    if (!userBand) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'No perteneces a ninguna banda registrada.' });
+    }
+    
+    if (!userBand.driveLink) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'Tu banda aún no tiene vinculada una carpeta de Google Drive. Solicita al administrador que configure el enlace.' });
+    }
+    
+    const match = userBand.driveLink.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+    const folderId = match ? match[1] : null;
+    
+    if (!folderId) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: 'El enlace de Google Drive de tu banda es inválido. Solicita al administrador que lo corrija.' });
+    }
+    
+    const fileBuffer = fs.readFileSync(req.file.path);
+    const fileContentBase64 = fileBuffer.toString('base64');
+    
+    const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+    
+    console.log(`[DRIVE UPLOAD] Uploading file ${req.file.originalname} (${req.file.size} bytes) for band ${userBand.name}...`);
+    
+    const scriptRes = await fetch(scriptURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        token: "BIRRAVERDE_2024_SECURE",
+        action: "upload",
+        folderId: folderId,
+        fileName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        fileContent: fileContentBase64
+      })
+    });
+    
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    
+    if (scriptRes.ok) {
+      const data = await scriptRes.json();
+      if (data.error) {
+        return res.status(500).json({ error: `Error en Google Script: ${data.error}` });
+      }
+      res.json({ success: true, message: 'Archivo subido a Google Drive con éxito.', url: data.url });
+    } else {
+      const text = await scriptRes.text();
+      res.status(500).json({ error: `Error de conexión con Google Script: ${text}` });
+    }
+  } catch (err) {
+    console.error('Error al subir archivo a Drive:', err);
+    if (req.file && fs.existsSync(req.file.path)) {
+      try { fs.unlinkSync(req.file.path); } catch (e) {}
+    }
+    res.status(500).json({ error: 'Error interno del servidor al subir a Google Drive.' });
   }
 });
 

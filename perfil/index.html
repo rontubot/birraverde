@@ -449,7 +449,9 @@
                         <button class="nav-item active" data-target="tab-bookings" id="navBookingsBtn">Mis Reservas</button>
                         <button class="nav-item" data-target="tab-all-bookings" id="navAllBookingsBtn" style="display: none;">Reservas de Sala</button>
                         <button class="nav-item" data-target="tab-internal-meetings" id="navInternalBookingsBtn" style="display: none;">Reuniones Internas</button>
+                        <button class="nav-item" data-target="tab-bands" id="navBandsBtn" style="display: none;">Bandas</button>
                         <button class="nav-item" data-target="tab-users" id="navUsersBtn" style="display: none;">Gestión de Personal</button>
+                        <button class="nav-item" data-target="tab-upload" id="navUploadBtn" style="display: none;">Subir Contenido</button>
                         <button class="nav-item" data-target="tab-account">Mi Cuenta</button>
                     </div>
                 </aside>
@@ -520,6 +522,53 @@
                         </div>
                     </div>
 
+                    <!-- Bands Panel (Admin/Worker) -->
+                    <div id="tab-bands" class="tab-panel">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h2 style="margin: 0; font-size: 1.75rem;">Bandas Registradas</h2>
+                            <button id="newBandBtn" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Nueva Banda</button>
+                        </div>
+                        <div class="search-bar" style="margin-bottom: 1.5rem;">
+                            <input type="text" id="bandSearchInput" placeholder="Buscar por nombre de banda o miembro...">
+                        </div>
+                        <div id="bandsList" class="cards-grid">
+                            <p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">Cargando bandas...</p>
+                        </div>
+                    </div>
+
+                    <!-- Upload Panel (Band Members only) -->
+                    <div id="tab-upload" class="tab-panel">
+                        <h2 style="margin: 0; font-size: 1.75rem; margin-bottom: 0.25rem;">Subir Contenido</h2>
+                        <p id="uploadBandSubtitle" style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 1rem;">Cargando información de tu banda...</p>
+                        
+                        <div id="uploadContainer" style="background: rgba(255, 255, 255, 0.02); border: 2px dashed var(--glass-border); padding: 3rem 1.5rem; border-radius: 12px; text-align: center; cursor: pointer; transition: all 0.3s; position: relative;">
+                            <input type="file" id="fileToUpload" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem; color: var(--primary);">📤</div>
+                            <h3 style="margin: 0 0 0.5rem 0;">Arrastra tus archivos aquí o haz clic para buscar</h3>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Soporta audio, video, PDF o cualquier archivo (Max. 50 MB)</p>
+                        </div>
+                        
+                        <!-- Upload Status indicator -->
+                        <div id="uploadProgressWrapper" style="display: none; margin-top: 1.5rem; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem;">
+                                <span id="uploadFileName">archivo.mp3</span>
+                                <span id="uploadPercentage">0%</span>
+                            </div>
+                            <div style="background: rgba(255,255,255,0.05); height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div id="uploadProgressBar" style="background: var(--primary); width: 0%; height: 100%; transition: width 0.1s;"></div>
+                            </div>
+                            <p id="uploadStatusText" style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: var(--text-muted); text-align: center;">Subiendo...</p>
+                        </div>
+                        
+                        <!-- Upload History list -->
+                        <div style="margin-top: 2rem;">
+                            <h3 style="font-size: 1.2rem; margin-bottom: 1rem;">Historial de Subidas</h3>
+                            <div id="uploadHistoryList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">No has subido ningún archivo en esta sesión.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Account Settings Panel -->
                     <div id="tab-account" class="tab-panel">
                         <h2 style="margin-bottom: 1.5rem; font-size: 1.75rem;">Detalles de mi Cuenta</h2>
@@ -566,6 +615,9 @@
             let currentUser = cachedUser;
             let allBookingsCached = [];
             let allMeetingsCached = [];
+            let allUsersCached = [];
+            let allBandsCached = [];
+            let selectedBandMembers = [];
 
             const formatDateStr = (dateStr) => {
                 if (!dateStr) return '';
@@ -620,6 +672,12 @@
 
                     if (currentUser.role === 'admin') {
                         document.getElementById('navUsersBtn').style.display = 'block';
+                    }
+                    document.getElementById('navBandsBtn').style.display = 'block';
+                } else {
+                    if (currentUser.band && currentUser.band.driveLink) {
+                        document.getElementById('navUploadBtn').style.display = 'block';
+                        document.getElementById('uploadBandSubtitle').innerHTML = `Banda: <strong>${currentUser.band.name}</strong>`;
                     }
                 }
             };
@@ -742,7 +800,7 @@
                     <div class="session-card">
                         <span class="session-card-badge">Reserva</span>
                         <div class="session-card-header">
-                            <h3 class="session-card-title">${b.name}</h3>
+                            <h3 class="session-card-title">${b.name}${b.bandName ? ` (${b.bandName})` : ''}</h3>
                             <p class="session-card-subtitle">${b.email}</p>
                         </div>
                         <div class="session-card-body">
@@ -834,7 +892,7 @@
                         <span class="session-card-badge" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2);">Reunión</span>
                         <div class="session-card-header">
                             <h3 class="session-card-title">${m.subject}</h3>
-                            <p class="session-card-subtitle">Por: ${m.hostName}</p>
+                            <p class="session-card-subtitle">Por: ${m.hostName}${m.hostBandName ? ` (${m.hostBandName})` : ''}</p>
                         </div>
                         <div class="session-card-body">
                             <div class="session-card-item"><span>Fecha</span><strong>${formatDateStr(m.date)}</strong></div>
@@ -1025,7 +1083,7 @@
                 }
             };
 
-            // Fetch All Users (Admin only)
+            // Fetch All Users (Admin/Worker)
             const fetchUsers = async () => {
                 try {
                     const response = await fetch('/api/admin/users', {
@@ -1033,11 +1091,13 @@
                     });
                     if (response.ok) {
                         const users = await response.json();
+                        allUsersCached = users;
                         const listEl = document.getElementById('usersList');
+                        if (!listEl) return;
                         
                         listEl.innerHTML = users.map(u => `
                             <tr>
-                                <td data-label="Nombre"><strong>${u.name}</strong></td>
+                                <td data-label="Nombre"><strong>${u.name}${u.bandName ? ` (${u.bandName})` : ''}</strong></td>
                                 <td data-label="Email">${u.email}</td>
                                 <td data-label="Rol Actual">
                                     <span class="role-badge ${u.role === 'admin' ? 'role-admin' : (u.role === 'worker' ? 'role-worker' : 'role-client')}">
@@ -1087,13 +1147,424 @@
                 }
             };
 
+            // FETCH BANDS
+            const fetchBands = async () => {
+                try {
+                    const response = await fetch('/api/admin/bands', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        allBandsCached = await response.json();
+                        renderBands(allBandsCached);
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+
+            // RENDER BANDS
+            const renderBands = (bandsToRender) => {
+                const listEl = document.getElementById('bandsList');
+                if (!listEl) return;
+                
+                if (bandsToRender.length === 0) {
+                    listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">No hay bandas registradas.</p>`;
+                    return;
+                }
+                
+                listEl.innerHTML = bandsToRender.map(b => {
+                    const membersHtml = b.resolvedMembers && b.resolvedMembers.length > 0
+                        ? b.resolvedMembers.map(m => `
+                            <div style="font-size: 0.85rem; padding: 0.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.02);">
+                                <strong>${m.name}</strong> <span style="color: var(--text-muted); font-size: 0.75rem;">(${m.email})</span>
+                            </div>
+                          `).join('')
+                        : '<span style="color: var(--text-muted); font-size: 0.85rem;">Sin miembros asignados.</span>';
+                        
+                    const driveLinkHtml = b.driveLink
+                        ? `<a href="${b.driveLink}" target="_blank" class="btn btn-outline" style="padding: 0.4rem 0.8rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem;">📂 Carpeta Compartida</a>`
+                        : '<span style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">Sin enlace de Drive</span>';
+
+                    return `
+                        <div class="session-card">
+                            <span class="session-card-badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2);">Banda</span>
+                            <div class="session-card-header">
+                                <h3 class="session-card-title">${b.name}</h3>
+                                <div class="session-card-subtitle" style="margin-top: 0.25rem;">${driveLinkHtml}</div>
+                            </div>
+                            <div class="session-card-body" style="max-height: 150px; overflow-y: auto; background: rgba(0,0,0,0.1); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem;">Miembros</div>
+                                ${membersHtml}
+                            </div>
+                            <div class="session-card-footer">
+                                <button class="btn-card-edit edit-band-btn" data-id="${b.id}">Editar</button>
+                                <button class="btn-card-delete delete-band-btn" data-id="${b.id}" data-name="${b.name}">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add event listeners to edit buttons
+                document.querySelectorAll('.edit-band-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const id = btn.getAttribute('data-id');
+                        const band = allBandsCached.find(x => x.id === id);
+                        if (band) {
+                            openBandModal('edit', band);
+                        }
+                    };
+                });
+                
+                // Add event listeners to delete buttons
+                document.querySelectorAll('.delete-band-btn').forEach(btn => {
+                    btn.onclick = async () => {
+                        const id = btn.getAttribute('data-id');
+                        const name = btn.getAttribute('data-name');
+                        if (confirm(`¿Estás seguro de que deseas eliminar la banda "${name}"?`)) {
+                            try {
+                                const response = await fetch(`/api/admin/bands/${id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (response.ok) {
+                                    alert('✅ Banda eliminada.');
+                                    fetchBands();
+                                } else {
+                                    const data = await response.json();
+                                    alert(`❌ Error: ${data.error || 'No se pudo eliminar.'}`);
+                                }
+                            } catch (e) {
+                                alert('❌ Error de conexión.');
+                            }
+                        }
+                    };
+                });
+            };
+
+            // BAND MODAL LOGIC
+            const bandModal = document.getElementById('bandModal');
+            const bandForm = document.getElementById('bandForm');
+            const memberSearchInput = document.getElementById('memberSearchInput');
+            const memberSearchResults = document.getElementById('memberSearchResults');
+            const selectedMembersList = document.getElementById('selectedMembersList');
+            const driveLinkWrapper = document.getElementById('driveLinkWrapper');
+            
+            // Only show drive link input for admin role
+            if (currentUser.role !== 'admin') {
+                driveLinkWrapper.style.display = 'none';
+            }
+
+            const openBandModal = (action, band = null) => {
+                document.getElementById('bandModalTitle').innerText = action === 'edit' ? 'Editar Banda' : 'Crear Banda';
+                document.getElementById('bandId').value = band ? band.id : '';
+                document.getElementById('bandNameInput').value = band ? band.name : '';
+                document.getElementById('bandDriveLinkInput').value = band && band.driveLink ? band.driveLink : '';
+                memberSearchInput.value = '';
+                memberSearchResults.innerHTML = '';
+                memberSearchResults.style.display = 'none';
+                
+                selectedBandMembers = band ? [...(band.members || [])] : [];
+                renderSelectedMembersChips();
+                
+                bandModal.classList.add('active');
+            };
+
+            const renderSelectedMembersChips = () => {
+                selectedMembersList.innerHTML = '';
+                if (selectedBandMembers.length === 0) {
+                    selectedMembersList.innerHTML = '<span style="color: var(--text-muted); font-size: 0.85rem; margin: auto;">Sin miembros seleccionados</span>';
+                    return;
+                }
+                
+                selectedBandMembers.forEach(userId => {
+                    const u = allUsersCached.find(user => user.id === userId);
+                    if (u) {
+                        const chip = document.createElement('div');
+                        chip.style = 'background: rgba(16, 185, 129, 0.15); color: #fff; border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.25rem 0.5rem; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;';
+                        chip.innerHTML = `
+                            <span>${u.name}</span>
+                            <button type="button" style="background: none; border: none; color: #ff4444; font-weight: bold; cursor: pointer; padding: 0; font-size: 0.85rem;" data-id="${u.id}">&times;</button>
+                        `;
+                        chip.querySelector('button').onclick = () => {
+                            selectedBandMembers = selectedBandMembers.filter(id => id !== u.id);
+                            renderSelectedMembersChips();
+                        };
+                        selectedMembersList.appendChild(chip);
+                    }
+                });
+            };
+
+            // Hook up member search autocomplete
+            if (memberSearchInput) {
+                memberSearchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    if (!query) {
+                        memberSearchResults.innerHTML = '';
+                        memberSearchResults.style.display = 'none';
+                        return;
+                    }
+                    
+                    const filtered = allUsersCached.filter(u => 
+                        !selectedBandMembers.includes(u.id) && (
+                            u.name.toLowerCase().includes(query) ||
+                            u.email.toLowerCase().includes(query) ||
+                            (u.phone && u.phone.includes(query))
+                        )
+                    ).slice(0, 10);
+                    
+                    if (filtered.length === 0) {
+                        memberSearchResults.innerHTML = '<div style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;">No se encontraron usuarios.</div>';
+                        memberSearchResults.style.display = 'block';
+                        return;
+                    }
+                    
+                    memberSearchResults.innerHTML = filtered.map(u => `
+                        <div class="search-result-item" data-id="${u.id}" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.2s;">
+                            <div style="font-size: 0.9rem; font-weight: bold;">${u.name}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">${u.email}</div>
+                        </div>
+                    `).join('');
+                    
+                    memberSearchResults.style.display = 'block';
+                    
+                    // Add click listeners to items
+                    memberSearchResults.querySelectorAll('.search-result-item').forEach(item => {
+                        item.onclick = () => {
+                            const id = item.getAttribute('data-id');
+                            selectedBandMembers.push(id);
+                            memberSearchInput.value = '';
+                            memberSearchResults.innerHTML = '';
+                            memberSearchResults.style.display = 'none';
+                            renderSelectedMembersChips();
+                        };
+                    });
+                });
+                
+                // Style for search results hover
+                const style = document.createElement('style');
+                style.innerHTML = `
+                    .search-result-item:hover {
+                        background: rgba(255, 255, 255, 0.05) !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Close band modal handlers
+            document.getElementById('closeBandModalBtn').onclick = () => bandModal.classList.remove('active');
+            document.getElementById('cancelBandModalBtn').onclick = () => bandModal.classList.remove('active');
+            document.getElementById('newBandBtn').onclick = () => openBandModal('create');
+            
+            // Band Search Logic
+            const bandSearchInput = document.getElementById('bandSearchInput');
+            if (bandSearchInput) {
+                bandSearchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase().trim();
+                    if (!query) {
+                        renderBands(allBandsCached);
+                        return;
+                    }
+                    const filtered = allBandsCached.filter(b => 
+                        b.name.toLowerCase().includes(query) ||
+                        (b.resolvedMembers && b.resolvedMembers.some(m => m.name.toLowerCase().includes(query) || m.email.toLowerCase().includes(query)))
+                    );
+                    renderBands(filtered);
+                });
+            }
+
+            // Form Submit for Bands
+            if (bandForm) {
+                bandForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const bandId = document.getElementById('bandId').value;
+                    const name = document.getElementById('bandNameInput').value;
+                    const driveLink = document.getElementById('bandDriveLinkInput').value;
+                    
+                    const payload = {
+                        name,
+                        members: selectedBandMembers,
+                        driveLink
+                    };
+                    
+                    const url = bandId ? `/api/admin/bands/${bandId}` : '/api/admin/bands';
+                    const method = bandId ? 'PUT' : 'POST';
+                    
+                    try {
+                        const response = await fetch(url, {
+                            method,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const data = await response.json();
+                        if (response.ok) {
+                            alert(data.message || 'Banda guardada con éxito.');
+                            bandModal.classList.remove('active');
+                            fetchBands();
+                        } else {
+                            alert(`❌ Error: ${data.error || 'Ocurrió un problema.'}`);
+                        }
+                    } catch (err) {
+                        alert('❌ Error de conexión al guardar banda.');
+                    }
+                };
+            }
+
+            // --- GOOGLE DRIVE UPLOAD LOGIC ---
+            const uploadContainer = document.getElementById('uploadContainer');
+            const fileInput = document.getElementById('fileToUpload');
+            const progressWrapper = document.getElementById('uploadProgressWrapper');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const progressPercent = document.getElementById('uploadPercentage');
+            const progressStatus = document.getElementById('uploadStatusText');
+            const progressFileName = document.getElementById('uploadFileName');
+            const uploadHistoryList = document.getElementById('uploadHistoryList');
+            let uploadHistory = [];
+
+            if (uploadContainer && fileInput) {
+                // Highlight drop area
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadContainer.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        uploadContainer.style.border = '2px dashed var(--primary)';
+                        uploadContainer.style.background = 'rgba(16, 185, 129, 0.05)';
+                    }, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadContainer.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        uploadContainer.style.border = '2px dashed var(--glass-border)';
+                        uploadContainer.style.background = 'rgba(255, 255, 255, 0.02)';
+                    }, false);
+                });
+
+                // Drop file handler
+                uploadContainer.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    if (files && files.length > 0) {
+                        handleFileUpload(files[0]);
+                    }
+                }, false);
+
+                // Select file handler
+                fileInput.addEventListener('change', (e) => {
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                        handleFileUpload(files[0]);
+                    }
+                });
+            }
+
+            const handleFileUpload = (file) => {
+                if (!file) return;
+                
+                // Limit check: 50MB
+                const maxBytes = 50 * 1024 * 1024;
+                if (file.size > maxBytes) {
+                    alert('❌ El archivo supera el límite de 50MB permitido por Google Apps Script. Por favor reduce su tamaño.');
+                    return;
+                }
+
+                // Show progress block
+                progressFileName.innerText = file.name;
+                progressBar.style.width = '0%';
+                progressPercent.innerText = '0%';
+                progressStatus.innerText = 'Subiendo al servidor de Birraverde...';
+                progressBar.style.backgroundColor = 'var(--primary)';
+                progressWrapper.style.display = 'block';
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/upload-drive', true);
+                xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+                
+                // Track progress
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressPercent.innerText = percent + '%';
+                        if (percent >= 100) {
+                            progressStatus.innerText = 'Guardando archivo en Google Drive... (Este paso puede tomar unos segundos)';
+                        }
+                    }
+                });
+                
+                // Handle response
+                xhr.onreadystatechange = () => {
+                    if (xhr.readyState === XMLHttpRequest.DONE) {
+                        if (xhr.status === 200) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                progressStatus.innerText = '🎉 ¡Subido con éxito!';
+                                progressStatus.style.color = '#10b981';
+                                progressBar.style.backgroundColor = '#10b981';
+                                
+                                // Add to history
+                                addToUploadHistory(file.name, response.url);
+                            } catch (e) {
+                                showUploadError('Error al procesar la respuesta del servidor.');
+                            }
+                        } else {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                showUploadError(response.error || 'Ocurrió un error al subir el archivo.');
+                            } catch (e) {
+                                showUploadError(`Error de servidor (${xhr.status})`);
+                            }
+                        }
+                    }
+                };
+                
+                xhr.send(formData);
+            };
+
+            const showUploadError = (msg) => {
+                progressStatus.innerText = `❌ Error: ${msg}`;
+                progressStatus.style.color = '#ff4444';
+                progressBar.style.backgroundColor = '#ff4444';
+            };
+
+            const addToUploadHistory = (fileName, driveUrl) => {
+                uploadHistory.unshift({
+                    name: fileName,
+                    url: driveUrl,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+                
+                renderUploadHistory();
+            };
+
+            const renderUploadHistory = () => {
+                if (uploadHistory.length === 0) {
+                    uploadHistoryList.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center;">No has subido ningún archivo en esta sesión.</p>';
+                    return;
+                }
+                
+                uploadHistoryList.innerHTML = uploadHistory.map(item => `
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 0.75rem 1rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="font-weight: bold; font-size: 0.9rem; word-break: break-all;">${item.name}</span>
+                            <span style="color: var(--text-muted); font-size: 0.75rem;">Subido a las ${item.time}</span>
+                        </div>
+                        <a href="${item.url}" target="_blank" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-color: var(--primary); color: #fff;">🔗 Ver en Drive</a>
+                    </div>
+                `).join('');
+            };
+
             const loadDataBasedOnRole = () => {
                 if (currentUser.role === 'admin' || currentUser.role === 'worker') {
                     fetchAllBookings();
                     fetchAllMeetings();
-                    if (currentUser.role === 'admin') {
-                        fetchUsers();
-                    }
+                    fetchBands();
+                    fetchUsers();
                 } else {
                     fetchClientBookings();
                 }
@@ -1244,6 +1715,40 @@
                 <div id="modalFormFields"></div>
                 <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
                     <button type="button" class="btn btn-outline" id="cancelModalBtn" style="flex: 1; justify-content: center;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Band Modal -->
+    <div id="bandModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="bandModalTitle">Crear Banda</h3>
+                <button class="modal-close" id="closeBandModalBtn">&times;</button>
+            </div>
+            <form id="bandForm" class="modal-form">
+                <input type="hidden" id="bandId">
+                <div style="margin-bottom: 0.5rem;">
+                    <label for="bandNameInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Nombre de la Banda</label>
+                    <input type="text" id="bandNameInput" required style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit;">
+                </div>
+                <div style="margin-bottom: 0.5rem;" id="driveLinkWrapper">
+                    <label for="bandDriveLinkInput" style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Enlace de Carpeta Google Drive (Solo Admin)</label>
+                    <input type="url" id="bandDriveLinkInput" placeholder="https://drive.google.com/drive/..." style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit;">
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem; color: var(--text-muted);">Buscar Miembros (Por nombre, email o teléfono)</label>
+                    <input type="text" id="memberSearchInput" placeholder="Escribe para buscar usuarios..." style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; margin-bottom: 0.5rem;">
+                    
+                    <div id="memberSearchResults" style="max-height: 150px; overflow-y: auto; background: rgba(20, 20, 20, 0.95); border: 1px solid var(--glass-border); border-radius: 8px; display: none; margin-bottom: 1rem;"></div>
+                    
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Miembros Seleccionados:</label>
+                    <div id="selectedMembersList" style="display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 40px; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px dashed var(--glass-border);"></div>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" id="cancelBandModalBtn" style="flex: 1; justify-content: center;">Cancelar</button>
                     <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Guardar</button>
                 </div>
             </form>

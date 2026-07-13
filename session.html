@@ -367,7 +367,7 @@
             if (type === 'booking') {
                 badge.innerText = 'Reserva de Sala';
                 badge.className = 'details-badge';
-                title.innerText = data.name;
+                title.innerText = data.name + (data.bandName ? ` (${data.bandName})` : '');
                 subtitle.innerText = data.email;
 
                 grid.innerHTML = `
@@ -406,7 +406,7 @@
                 badge.innerText = 'Reunión Interna';
                 badge.className = 'details-badge meeting';
                 title.innerText = data.subject;
-                subtitle.innerText = `Convocada por: ${data.hostName} (${data.hostEmail})`;
+                subtitle.innerText = `Convocada por: ${data.hostName}${data.hostBandName ? ` (${data.hostBandName})` : ''} (${data.hostEmail})`;
 
                 grid.innerHTML = `
                     <div class="details-item">
@@ -437,7 +437,7 @@
                     document.getElementById('invitedSection').style.display = 'block';
                     const container = document.getElementById('guestsContainer');
                     container.innerHTML = data.invitedUsers.map(u => `
-                        <span class="guest-tag">👤 ${u.name} (${u.email})</span>
+                        <span class="guest-tag">👤 ${u.name}${u.bandName ? ` (${u.bandName})` : ''} (${u.email})</span>
                     `).join('');
                 }
 
