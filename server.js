@@ -388,6 +388,60 @@ const dbDeleteMeeting = async (id) => {
   }
 };
 
+const dbGetBookingById = async (id) => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM bookings WHERE id = $1', [id]);
+    return res.rows[0] || null;
+  }
+  return bookings.find(b => b.id === id) || null;
+};
+
+const dbUpdateBooking = async (id, booking) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `UPDATE bookings SET name = $1, email = $2, phone = $3, people = $4, duration = $5, date = $6, time = $7, notes = $8 WHERE id = $9`,
+      [booking.name, booking.email, booking.phone, Number(booking.people), Number(booking.duration), booking.date, booking.time, booking.notes, id]
+    );
+  } else {
+    const idx = bookings.findIndex(b => b.id === id);
+    if (idx !== -1) {
+      bookings[idx] = { ...bookings[idx], ...booking };
+      saveBookings();
+    }
+  }
+};
+
+const dbGetMeetingById = async (id) => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM meetings WHERE id = $1', [id]);
+    if (res.rows[0]) {
+      const row = res.rows[0];
+      return {
+        ...row,
+        invitedUsers: typeof row.invitedUsers === 'string' ? JSON.parse(row.invitedUsers) : row.invitedUsers,
+        files: typeof row.files === 'string' ? JSON.parse(row.files) : row.files
+      };
+    }
+    return null;
+  }
+  return meetings.find(m => m.id === id) || null;
+};
+
+const dbUpdateMeeting = async (id, meeting) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `UPDATE meetings SET subject = $1, duration = $2, date = $3, time = $4, notes = $5, "invitedUsers" = $6 WHERE id = $7`,
+      [meeting.subject, Number(meeting.duration), meeting.date, meeting.time, meeting.notes, JSON.stringify(meeting.invitedUsers), id]
+    );
+  } else {
+    const idx = meetings.findIndex(m => m.id === id);
+    if (idx !== -1) {
+      meetings[idx] = { ...meetings[idx], ...meeting };
+      saveMeetings();
+    }
+  }
+};
+
 // Middlewares de autenticación y autorización
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -855,6 +909,39 @@ app.delete('/api/admin/bookings/:id', authenticateToken, requireRole(['admin']),
   }
 });
 
+app.get('/api/admin/bookings/:id', authenticateToken, async (req, res) => {
+  try {
+    const booking = await dbGetBookingById(req.params.id);
+    if (!booking) {
+      return res.status(404).json({ error: 'Reserva no encontrada.' });
+    }
+    
+    // Proteger acceso: Solo admins, workers, o el cliente dueño de la reserva
+    if (req.user.role !== 'admin' && req.user.role !== 'worker' && booking.userId !== req.user.id && booking.email !== req.user.email) {
+      return res.status(403).json({ error: 'Acceso denegado.' });
+    }
+    
+    res.json(booking);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener reserva.' });
+  }
+});
+
+app.put('/api/admin/bookings/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const { name, email, phone, people, duration, date, time, notes } = req.body;
+    if (!name || !email || !phone || !people || !duration || !date || !time) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+    }
+    await dbUpdateBooking(req.params.id, { name, email, phone, people, duration, date, time, notes });
+    res.json({ success: true, message: 'Reserva actualizada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar reserva.' });
+  }
+});
+
 app.get('/api/admin/users', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const allUsers = await dbGetUsers();
@@ -1136,6 +1223,42 @@ app.delete('/api/admin/meetings/:id', authenticateToken, requireRole(['admin']),
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar reunión.' });
+  }
+});
+
+app.get('/api/admin/meetings/:id', authenticateToken, async (req, res) => {
+  try {
+    const meeting = await dbGetMeetingById(req.params.id);
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunión no encontrada.' });
+    }
+    
+    // Proteger acceso: Solo admins, workers, convocante, o invitados
+    const isGuest = meeting.invitedUsers && meeting.invitedUsers.some(u => u.email === req.user.email);
+    const isHost = meeting.hostEmail === req.user.email || meeting.hostId === req.user.id;
+    
+    if (req.user.role !== 'admin' && req.user.role !== 'worker' && !isHost && !isGuest) {
+      return res.status(403).json({ error: 'Acceso denegado.' });
+    }
+    
+    res.json(meeting);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener reunión.' });
+  }
+});
+
+app.put('/api/admin/meetings/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+  try {
+    const { subject, duration, date, time, notes, invitedUsers } = req.body;
+    if (!subject || !duration || !date || !time) {
+      return res.status(400).json({ error: 'Faltan campos obligatorios.' });
+    }
+    await dbUpdateMeeting(req.params.id, { subject, duration, date, time, notes, invitedUsers });
+    res.json({ success: true, message: 'Reunión actualizada con éxito.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al actualizar reunión.' });
   }
 });
 

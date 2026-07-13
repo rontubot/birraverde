@@ -193,6 +193,211 @@
                 letter-spacing: 0.05em !important;
             }
         }
+
+        /* Card Layout for Bookings & Meetings */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        .session-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        .session-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 255, 65, 0.3);
+            box-shadow: 0 8px 30px rgba(0, 255, 65, 0.05);
+        }
+        .session-card-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 0.75rem;
+            background: rgba(0, 255, 65, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            padding: 0.25rem 0.6rem;
+            border-radius: 100px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .session-card-header {
+            margin-bottom: 1rem;
+            padding-right: 4.5rem; /* leave space for badge */
+        }
+        .session-card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0 0 0.25rem 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .session-card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .session-card-body {
+            font-size: 0.9rem;
+            color: #ccc;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .session-card-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .session-card-item span {
+            color: var(--text-muted);
+            width: 80px;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .session-card-item strong {
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .session-card-footer {
+            display: flex;
+            gap: 0.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 1rem;
+            margin-top: auto;
+        }
+        .session-card-footer button, .session-card-footer a {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+        .btn-card-edit {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: 1px solid var(--glass-border);
+        }
+        .btn-card-edit:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .btn-card-view {
+            background: rgba(0, 255, 65, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            text-decoration: none;
+        }
+        .btn-card-view:hover {
+            background: var(--primary);
+            color: #000;
+        }
+        .btn-card-delete {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
+            border: 1px solid rgba(255, 68, 68, 0.2);
+            flex: 0 0 auto !important;
+            width: 38px;
+        }
+        .btn-card-delete:hover {
+            background: #ff4444;
+            color: #000;
+        }
+        @media (max-width: 768px) {
+            .profile-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            animation: modalFadeIn 0.3s ease-out;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 0;
+        }
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .modal-close:hover {
+            color: #fff;
+        }
+        .modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
     </style>
 </head>
 <body>
@@ -243,22 +448,8 @@
                             <h2 style="margin: 0; font-size: 1.75rem;">Historial de Reservas</h2>
                             <a href="/sala/" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Nueva Reserva</a>
                         </div>
-                        <div style="overflow-x: auto;">
-                            <table class="booking-table">
-                                <thead>
-                                    <tr>
-                                        <th>Fecha</th>
-                                        <th>Hora</th>
-                                        <th>Duración</th>
-                                        <th>Nota</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="clientBookingsList">
-                                    <tr>
-                                        <td colspan="4" style="text-align: center; color: var(--text-muted);">Cargando reservas...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div id="clientBookingsList" class="cards-grid">
+                            <p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">Cargando reservas...</p>
                         </div>
                     </div>
 
@@ -268,25 +459,8 @@
                         <div class="search-bar">
                             <input type="text" id="bookingSearchInput" placeholder="Buscar por artista, correo, fecha o teléfono...">
                         </div>
-                        <div style="overflow-x: auto;">
-                            <table class="booking-table">
-                                <thead>
-                                    <tr>
-                                        <th>Artista/Cliente</th>
-                                        <th>Contacto</th>
-                                        <th>Fecha/Hora</th>
-                                        <th>Duración</th>
-                                        <th>Personas</th>
-                                        <th>Notas</th>
-                                        <th id="thActions" style="display: none;">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="allBookingsList">
-                                    <tr>
-                                        <td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando listado...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div id="allBookingsList" class="cards-grid">
+                            <p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">Cargando listado...</p>
                         </div>
                     </div>
 
@@ -299,26 +473,8 @@
                         <div class="search-bar" style="margin-bottom: 1.5rem;">
                             <input type="text" id="meetingSearchInput" placeholder="Buscar por asunto, convocante, fecha...">
                         </div>
-                        <div style="overflow-x: auto;">
-                            <table class="booking-table">
-                                <thead>
-                                    <tr>
-                                        <th>Convocante</th>
-                                        <th>Asunto</th>
-                                        <th>Fecha/Hora</th>
-                                        <th>Duración</th>
-                                        <th>Invitados</th>
-                                        <th>Archivos Adjuntos</th>
-                                        <th>Notas</th>
-                                        <th class="th-meeting-actions" style="display: none;">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="internalMeetingsList">
-                                    <tr>
-                                        <td colspan="8" style="text-align: center; color: var(--text-muted);">Cargando reuniones...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div id="internalMeetingsList" class="cards-grid">
+                            <p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">Cargando reuniones...</p>
                         </div>
                     </div>
 
@@ -495,19 +651,28 @@
                     
                     const listEl = document.getElementById('clientBookingsList');
                     if (relevantServer.length === 0 && localBookings.length === 0) {
-                        listEl.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No has agendado ninguna reserva aún.</td></tr>`;
+                        listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">No has agendado ninguna reserva aún.</p>`;
                         return;
                     }
 
                     // Format dates
                     const allBookings = [...relevantServer, ...localBookings];
                     listEl.innerHTML = allBookings.map(b => `
-                        <tr>
-                            <td data-label="Fecha"><strong>${b.date}</strong></td>
-                            <td data-label="Hora" style="color: var(--primary);">${b.time}</td>
-                            <td data-label="Duración">${b.duration} hora(s)</td>
-                            <td data-label="Notas" style="color: var(--text-muted); font-size: 0.9rem;">${b.notes || '-'}</td>
-                        </tr>
+                        <div class="session-card">
+                            <span class="session-card-badge">Reserva</span>
+                            <div class="session-card-header">
+                                <h3 class="session-card-title">${b.name || 'Mi Reserva'}</h3>
+                                <p class="session-card-subtitle">${b.date}</p>
+                            </div>
+                            <div class="session-card-body">
+                                <div class="session-card-item"><span>Hora</span><strong style="color: var(--primary);">${b.time}</strong></div>
+                                <div class="session-card-item"><span>Duración</span><strong>${b.duration} hora(s)</strong></div>
+                                <div class="session-card-item"><span>Nota</span><strong>${b.notes || '-'}</strong></div>
+                            </div>
+                            <div class="session-card-footer">
+                                ${b.id ? `<a href="/session.html?type=booking&id=${b.id}" class="btn-card-view">👁️ Ver Detalles</a>` : `<span style="color: var(--text-muted); font-size: 0.85rem; padding: 0.5rem; text-align: center; width: 100%;">Pendiente de sincronizar</span>`}
+                            </div>
+                        </div>
                     `).join('');
                 } catch (err) {
                     console.error(err);
@@ -532,27 +697,32 @@
             const renderAllBookings = (bookings) => {
                 const listEl = document.getElementById('allBookingsList');
                 if (bookings.length === 0) {
-                    listEl.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No hay reservas registradas.</td></tr>`;
+                    listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">No hay reservas registradas.</p>`;
                     return;
                 }
 
                 listEl.innerHTML = bookings.map(b => `
-                    <tr>
-                        <td data-label="Cliente"><strong>${b.name}</strong></td>
-                        <td data-label="Contacto" style="font-size: 0.85rem; line-height: 1.3;">
-                            Email: ${b.email}<br>
-                            Tel: ${b.phone}
-                        </td>
-                        <td data-label="Fecha/Hora">${b.date} a las <span style="color: var(--primary);">${b.time}</span></td>
-                        <td data-label="Duración">${b.duration}h</td>
-                        <td data-label="Personas">${b.people}</td>
-                        <td data-label="Notas" style="color: var(--text-muted); font-size: 0.85rem;">${b.notes || '-'}</td>
-                        ${currentUser.role === 'admin' ? `
-                            <td data-label="Acción">
-                                <button class="btn-danger delete-booking-btn" data-id="${b.id}" data-artist="${b.name}">Eliminar</button>
-                            </td>
-                        ` : ''}
-                    </tr>
+                    <div class="session-card">
+                        <span class="session-card-badge">Reserva</span>
+                        <div class="session-card-header">
+                            <h3 class="session-card-title">${b.name}</h3>
+                            <p class="session-card-subtitle">${b.email}</p>
+                        </div>
+                        <div class="session-card-body">
+                            <div class="session-card-item"><span>Fecha</span><strong>${b.date}</strong></div>
+                            <div class="session-card-item"><span>Hora</span><strong style="color: var(--primary);">${b.time}</strong></div>
+                            <div class="session-card-item"><span>Duración</span><strong>${b.duration} hora(s)</strong></div>
+                            <div class="session-card-item"><span>Personas</span><strong>${b.people}</strong></div>
+                            <div class="session-card-item"><span>Teléfono</span><strong>${b.phone || '-'}</strong></div>
+                        </div>
+                        <div class="session-card-footer">
+                            <button class="btn-card-edit edit-booking-btn" data-id="${b.id}">Editar</button>
+                            <a href="/session.html?type=booking&id=${b.id}" class="btn-card-view">👁️</a>
+                            ${currentUser.role === 'admin' ? `
+                                <button class="btn-card-delete delete-booking-btn" data-id="${b.id}" data-artist="${b.name}">🗑️</button>
+                            ` : ''}
+                        </div>
+                    </div>
                 `).join('');
 
                 // Hook up delete buttons
@@ -581,6 +751,17 @@
                         };
                     });
                 }
+
+                // Hook up edit buttons
+                document.querySelectorAll('.edit-booking-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const id = btn.getAttribute('data-id');
+                        const booking = allBookingsCached.find(b => b.id === id);
+                        if (booking) {
+                            openEditModal('booking', booking);
+                        }
+                    };
+                });
             };
 
             // Fetch All Meetings (Admin/Worker)
@@ -601,44 +782,35 @@
             const renderAllMeetings = (meetings) => {
                 const listEl = document.getElementById('internalMeetingsList');
                 if (meetings.length === 0) {
-                    listEl.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No hay reuniones registradas.</td></tr>`;
+                    listEl.innerHTML = `<p style="text-align: center; color: var(--text-muted); grid-column: 1/-1;">No hay reuniones registradas.</p>`;
                     return;
                 }
 
-                listEl.innerHTML = meetings.map(m => {
-                    const invitedText = m.invitedUsers && m.invitedUsers.length > 0 
-                        ? m.invitedUsers.map(u => `${u.name}`).join(', ') 
-                        : 'Ninguno';
-
-                    const filesLinks = m.files && m.files.length > 0
-                        ? m.files.map(f => `<a href="${f.path}" target="_blank" style="color: var(--primary); text-decoration: underline; display: block; font-size: 0.85rem; margin-bottom: 0.25rem;">${f.originalname}</a>`).join('')
-                        : '<span style="color: var(--text-muted); font-size: 0.85rem;">Ninguno</span>';
-
-                    return `
-                        <tr>
-                            <td data-label="Convocante">
-                                <strong>${m.hostName}</strong><br>
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">${m.hostEmail}</span>
-                            </td>
-                            <td data-label="Asunto"><strong>${m.subject}</strong></td>
-                            <td data-label="Fecha/Hora">${m.date} a las <span style="color: var(--primary);">${m.time}</span></td>
-                            <td data-label="Duración">${m.duration}h</td>
-                            <td data-label="Invitados" style="font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${invitedText}">${invitedText}</td>
-                            <td data-label="Archivos">${filesLinks}</td>
-                            <td data-label="Notas" style="color: var(--text-muted); font-size: 0.85rem; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${m.notes || '-'}">${m.notes || '-'}</td>
+                listEl.innerHTML = meetings.map(m => `
+                    <div class="session-card">
+                        <span class="session-card-badge" style="background: rgba(59, 130, 246, 0.1); color: #60a5fa; border-color: rgba(59, 130, 246, 0.2);">Reunión</span>
+                        <div class="session-card-header">
+                            <h3 class="session-card-title">${m.subject}</h3>
+                            <p class="session-card-subtitle">Por: ${m.hostName}</p>
+                        </div>
+                        <div class="session-card-body">
+                            <div class="session-card-item"><span>Fecha</span><strong>${m.date}</strong></div>
+                            <div class="session-card-item"><span>Hora</span><strong style="color: #60a5fa;">${m.time}</strong></div>
+                            <div class="session-card-item"><span>Duración</span><strong>${m.duration} hora(s)</strong></div>
+                            <div class="session-card-item"><span>Invitados</span><strong title="${m.invitedUsers ? m.invitedUsers.map(u => u.name).join(', ') : ''}">${m.invitedUsers && m.invitedUsers.length > 0 ? m.invitedUsers.length + ' invitado(s)' : 'Ninguno'}</strong></div>
+                        </div>
+                        <div class="session-card-footer">
+                            <button class="btn-card-edit edit-meeting-btn" data-id="${m.id}">Editar</button>
+                            <a href="/session.html?type=meeting&id=${m.id}" class="btn-card-view">👁️</a>
                             ${currentUser.role === 'admin' ? `
-                                <td data-label="Acción">
-                                    <button class="btn-danger delete-meeting-btn" data-id="${m.id}" data-subject="${m.subject}">Eliminar</button>
-                                </td>
+                                <button class="btn-card-delete delete-meeting-btn" data-id="${m.id}" data-subject="${m.subject}">🗑️</button>
                             ` : ''}
-                        </tr>
-                    `;
-                }).join('');
+                        </div>
+                    </div>
+                `).join('');
 
                 // Hook up delete buttons
                 if (currentUser.role === 'admin') {
-                    document.querySelectorAll('.th-meeting-actions').forEach(el => el.style.display = 'table-cell');
-                    
                     document.querySelectorAll('.delete-meeting-btn').forEach(btn => {
                         btn.onclick = async () => {
                             const id = btn.getAttribute('data-id');
@@ -662,6 +834,151 @@
                             }
                         };
                     });
+                }
+
+                // Hook up edit buttons
+                document.querySelectorAll('.edit-meeting-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        const id = btn.getAttribute('data-id');
+                        const meeting = allMeetingsCached.find(m => m.id === id);
+                        if (meeting) {
+                            openEditModal('meeting', meeting);
+                        }
+                    };
+                });
+            };
+
+            // Edit Modal Handlers
+            let currentEditType = '';
+            let currentEditId = '';
+
+            const openEditModal = (type, data) => {
+                currentEditType = type;
+                currentEditId = data.id;
+                const titleEl = document.getElementById('modalTitle');
+                const fieldsEl = document.getElementById('modalFormFields');
+                
+                if (type === 'booking') {
+                    titleEl.innerText = 'Editar Reserva';
+                    fieldsEl.innerHTML = `
+                        <div class="form-group">
+                            <label>Nombre del Artista / Cliente</label>
+                            <input type="text" id="edit_name" value="${data.name || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Correo Electrónico</label>
+                            <input type="email" id="edit_email" value="${data.email || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="text" id="edit_phone" value="${data.phone || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Personas</label>
+                            <input type="number" id="edit_people" value="${data.people || 1}" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Duración (Horas)</label>
+                            <input type="number" id="edit_duration" value="${data.duration || 1}" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="edit_date" value="${data.date || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Hora</label>
+                            <input type="time" id="edit_time" value="${data.time || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Notas</label>
+                            <textarea id="edit_notes" rows="3">${data.notes || ''}</textarea>
+                        </div>
+                    `;
+                } else if (type === 'meeting') {
+                    titleEl.innerText = 'Editar Reunión';
+                    fieldsEl.innerHTML = `
+                        <div class="form-group">
+                            <label>Asunto / Tema</label>
+                            <input type="text" id="edit_subject" value="${data.subject || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Duración (Horas)</label>
+                            <input type="number" id="edit_duration" value="${data.duration || 1}" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha</label>
+                            <input type="date" id="edit_date" value="${data.date || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Hora</label>
+                            <input type="time" id="edit_time" value="${data.time || ''}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Notas</label>
+                            <textarea id="edit_notes" rows="3">${data.notes || ''}</textarea>
+                        </div>
+                    `;
+                }
+                
+                document.getElementById('editModal').classList.add('active');
+            };
+
+            const closeEditModal = () => {
+                document.getElementById('editModal').classList.remove('active');
+            };
+
+            document.getElementById('closeModalBtn').onclick = closeEditModal;
+            document.getElementById('cancelModalBtn').onclick = closeEditModal;
+
+            document.getElementById('editForm').onsubmit = async (e) => {
+                e.preventDefault();
+                let body = {};
+                if (currentEditType === 'booking') {
+                    body = {
+                        name: document.getElementById('edit_name').value,
+                        email: document.getElementById('edit_email').value,
+                        phone: document.getElementById('edit_phone').value,
+                        people: document.getElementById('edit_people').value,
+                        duration: document.getElementById('edit_duration').value,
+                        date: document.getElementById('edit_date').value,
+                        time: document.getElementById('edit_time').value,
+                        notes: document.getElementById('edit_notes').value
+                    };
+                } else if (currentEditType === 'meeting') {
+                    body = {
+                        subject: document.getElementById('edit_subject').value,
+                        duration: document.getElementById('edit_duration').value,
+                        date: document.getElementById('edit_date').value,
+                        time: document.getElementById('edit_time').value,
+                        notes: document.getElementById('edit_notes').value,
+                        invitedUsers: allMeetingsCached.find(m => m.id === currentEditId)?.invitedUsers || []
+                    };
+                }
+                
+                try {
+                    const response = await fetch(`/api/admin/${currentEditType}s/${currentEditId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(body)
+                    });
+                    
+                    if (response.ok) {
+                        alert('✅ Cambios guardados con éxito.');
+                        closeEditModal();
+                        if (currentEditType === 'booking') {
+                            fetchAllBookings();
+                        } else {
+                            fetchAllMeetings();
+                        }
+                    } else {
+                        const errData = await response.json();
+                        alert(`❌ Error: ${errData.error}`);
+                    }
+                } catch (err) {
+                    alert('❌ Error de conexión al guardar cambios.');
                 }
             };
 
@@ -849,5 +1166,22 @@
             fetchMe();
         });
     </script>
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">Editar Reserva</h3>
+                <button class="modal-close" id="closeModalBtn">&times;</button>
+            </div>
+            <form id="editForm" class="modal-form">
+                <div id="modalFormFields"></div>
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-outline" id="cancelModalBtn" style="flex: 1; justify-content: center;">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 </body>
 </html>

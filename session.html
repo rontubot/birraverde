@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles de la Sesión | Birraverde</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
+    <style>
+        .details-container {
+            max-width: 700px;
+            margin: 4rem auto;
+            padding: 0 1.5rem;
+        }
+        .details-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .details-badge {
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            background: rgba(0, 255, 65, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(0, 255, 65, 0.2);
+            padding: 0.4rem 1rem;
+            border-radius: 100px;
+            margin-bottom: 1.5rem;
+        }
+        .details-badge.meeting {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border-color: rgba(59, 130, 246, 0.2);
+        }
+        .details-title {
+            font-size: 2.25rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 0.5rem 0;
+            line-height: 1.2;
+        }
+        .details-subtitle {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin: 0 0 2.5rem 0;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.25rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        @media (min-width: 550px) {
+            .details-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        .details-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .details-item-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+        }
+        .details-item-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .notes-box {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        .notes-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin: 0 0 0.75rem 0;
+        }
+        .notes-content {
+            color: #ccc;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin: 0;
+            white-space: pre-line;
+        }
+        .guest-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.85rem;
+            color: #fff;
+            margin: 0 0.5rem 0.5rem 0;
+        }
+        .file-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 255, 65, 0.05);
+            border: 1px solid rgba(0, 255, 65, 0.1);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: var(--transition);
+            width: fit-content;
+            margin-top: 0.5rem;
+        }
+        .file-link:hover {
+            background: var(--primary);
+            color: #000;
+        }
+        .details-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .details-actions a, .details-actions button {
+            flex: 1;
+            justify-content: center;
+            padding: 0.8rem;
+            font-size: 0.95rem;
+        }
+        @media (max-width: 480px) {
+            .details-card {
+                padding: 1.5rem;
+                border-radius: 16px;
+            }
+            .details-title {
+                font-size: 1.75rem;
+            }
+        }
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+            .details-card {
+                border: none;
+                box-shadow: none;
+                background: #fff;
+                color: #000;
+                padding: 0;
+            }
+            .details-actions, nav, .bg-gradient, .noise {
+                display: none !important;
+            }
+            .details-title, .details-item-value, .guest-tag {
+                color: #000 !important;
+            }
+            .notes-box {
+                border: 1px solid #ddd;
+                background: #fff;
+            }
+            .details-badge {
+                border: 1px solid #000;
+                color: #000;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="noise"></div>
+
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="/birraverde.png" alt="Birraverde">
+            </a>
+            <ul class="nav-links">
+                <li><a href="/perfil/">Mi Perfil</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="details-container">
+        <div class="details-card">
+            <div id="loader" style="text-align: center; padding: 3rem 0;">
+                <p style="color: var(--text-muted);">Cargando detalles de la sesión...</p>
+            </div>
+            
+            <div id="content" style="display: none;">
+                <span id="sessionTypeBadge" class="details-badge">Reserva</span>
+                
+                <h1 id="sessionTitle" class="details-title">Artista / Asunto</h1>
+                <p id="sessionSubtitle" class="details-subtitle">Email de contacto</p>
+                
+                <div class="details-grid" id="sessionGrid">
+                    <!-- Dynamic details will be loaded here -->
+                </div>
+                
+                <div class="notes-box" id="notesBox" style="display: none;">
+                    <h3 class="notes-title">Notas / Detalles</h3>
+                    <p class="notes-content" id="sessionNotes">-</p>
+                </div>
+
+                <div id="invitedSection" style="display: none; margin-bottom: 2.5rem;">
+                    <h3 class="notes-title" style="margin-bottom: 1rem;">Invitados a la reunión</h3>
+                    <div id="guestsContainer"></div>
+                </div>
+
+                <div id="filesSection" style="display: none; margin-bottom: 2.5rem;">
+                    <h3 class="notes-title" style="margin-bottom: 0.75rem;">Archivos adjuntos</h3>
+                    <div id="filesContainer"></div>
+                </div>
+                
+                <div class="details-actions">
+                    <a href="/perfil/" class="btn btn-outline">← Volver al Perfil</a>
+                    <button onclick="window.print()" class="btn btn-primary">🖨️ Imprimir / PDF</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('birraverde_token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const type = urlParams.get('type');
+            const id = urlParams.get('id');
+
+            if (!type || !id) {
+                document.getElementById('loader').innerHTML = '<p style="color: #ff4444;">⚠️ URL inválida. Falta el tipo o ID de la sesión.</p>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/${type}s/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    document.getElementById('loader').innerHTML = `<p style="color: #ff4444;">⚠️ Error: ${errData.error || 'No se pudo cargar la información.'}</p>`;
+                    return;
+                }
+
+                const data = await response.json();
+                renderDetails(type, data);
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('loader').innerHTML = '<p style="color: #ff4444;">⚠️ Error de conexión al servidor.</p>';
+            }
+        });
+
+        function renderDetails(type, data) {
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            const badge = document.getElementById('sessionTypeBadge');
+            const title = document.getElementById('sessionTitle');
+            const subtitle = document.getElementById('sessionSubtitle');
+            const grid = document.getElementById('sessionGrid');
+            const notesBox = document.getElementById('notesBox');
+            const notesContent = document.getElementById('sessionNotes');
+
+            // Format date to local readable format
+            const formatDateStr = (dateStr) => {
+                const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return dateStr;
+                return `${parseInt(parts[2])} de ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+            };
+
+            if (type === 'booking') {
+                badge.innerText = 'Reserva de Sala';
+                badge.className = 'details-badge';
+                title.innerText = data.name;
+                subtitle.innerText = data.email;
+
+                grid.innerHTML = `
+                    <div class="details-item">
+                        <span class="details-item-label">📅 Fecha</span>
+                        <span class="details-item-value">${formatDateStr(data.date)}</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">🕐 Hora de Inicio</span>
+                        <span class="details-item-value" style="color: var(--primary); font-size: 1.15rem;">${data.time}</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">⏱️ Duración</span>
+                        <span class="details-item-value">${data.duration} hora(s)</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">👥 Personas</span>
+                        <span class="details-item-value">${data.people}</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">📞 Teléfono</span>
+                        <span class="details-item-value">${data.phone || '-'}</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">🏷️ ID de Reserva</span>
+                        <span class="details-item-value" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">${data.id}</span>
+                    </div>
+                `;
+
+                if (data.notes) {
+                    notesBox.style.display = 'block';
+                    notesContent.innerText = data.notes;
+                }
+
+            } else if (type === 'meeting') {
+                badge.innerText = 'Reunión Interna';
+                badge.className = 'details-badge meeting';
+                title.innerText = data.subject;
+                subtitle.innerText = `Convocada por: ${data.hostName} (${data.hostEmail})`;
+
+                grid.innerHTML = `
+                    <div class="details-item">
+                        <span class="details-item-label">📅 Fecha</span>
+                        <span class="details-item-value">${formatDateStr(data.date)}</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">🕐 Hora de Inicio</span>
+                        <span class="details-item-value" style="color: #60a5fa; font-size: 1.15rem;">${data.time}</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">⏱️ Duración</span>
+                        <span class="details-item-value">${data.duration} hora(s)</span>
+                    </div>
+                    <div class="details-item">
+                        <span class="details-item-label">🏷️ ID de Reunión</span>
+                        <span class="details-item-value" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">${data.id}</span>
+                    </div>
+                `;
+
+                if (data.notes) {
+                    notesBox.style.display = 'block';
+                    notesContent.innerText = data.notes;
+                }
+
+                // Render Invited Users
+                if (data.invitedUsers && data.invitedUsers.length > 0) {
+                    document.getElementById('invitedSection').style.display = 'block';
+                    const container = document.getElementById('guestsContainer');
+                    container.innerHTML = data.invitedUsers.map(u => `
+                        <span class="guest-tag">👤 ${u.name} (${u.email})</span>
+                    `).join('');
+                }
+
+                // Render Attachments
+                if (data.files && data.files.length > 0) {
+                    document.getElementById('filesSection').style.display = 'block';
+                    const container = document.getElementById('filesContainer');
+                    container.innerHTML = data.files.map(f => `
+                        <a href="${f.path}" target="_blank" class="file-link">
+                            📁 ${f.originalname}
+                        </a>
+                    `).join('');
+                }
+            }
+        }
+    </script>
+</body>
+</html>
