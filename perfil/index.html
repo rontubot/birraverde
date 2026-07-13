@@ -567,6 +567,13 @@
             let allBookingsCached = [];
             let allMeetingsCached = [];
 
+            const formatDateStr = (dateStr) => {
+                if (!dateStr) return '';
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return dateStr;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            };
+
             // Setup profile info
             const renderProfileInfo = () => {
                 document.getElementById('userName').innerText = currentUser.name;
@@ -686,7 +693,7 @@
                             <span class="session-card-badge">Reserva</span>
                             <div class="session-card-header">
                                 <h3 class="session-card-title">${b.name || 'Mi Reserva'}</h3>
-                                <p class="session-card-subtitle">${b.date}</p>
+                                <p class="session-card-subtitle">${formatDateStr(b.date)}</p>
                             </div>
                             <div class="session-card-body">
                                 <div class="session-card-item"><span>Hora</span><strong style="color: var(--primary);">${b.time}</strong></div>
@@ -739,7 +746,7 @@
                             <p class="session-card-subtitle">${b.email}</p>
                         </div>
                         <div class="session-card-body">
-                            <div class="session-card-item"><span>Fecha</span><strong>${b.date}</strong></div>
+                            <div class="session-card-item"><span>Fecha</span><strong>${formatDateStr(b.date)}</strong></div>
                             <div class="session-card-item"><span>Hora</span><strong style="color: var(--primary);">${b.time}</strong></div>
                             <div class="session-card-item"><span>Duración</span><strong>${b.duration} hora(s)</strong></div>
                             <div class="session-card-item"><span>Personas</span><strong>${b.people}</strong></div>
@@ -830,7 +837,7 @@
                             <p class="session-card-subtitle">Por: ${m.hostName}</p>
                         </div>
                         <div class="session-card-body">
-                            <div class="session-card-item"><span>Fecha</span><strong>${m.date}</strong></div>
+                            <div class="session-card-item"><span>Fecha</span><strong>${formatDateStr(m.date)}</strong></div>
                             <div class="session-card-item"><span>Hora</span><strong style="color: #60a5fa;">${m.time}</strong></div>
                             <div class="session-card-item"><span>Duración</span><strong>${m.duration} hora(s)</strong></div>
                             <div class="session-card-item"><span>Invitados</span><strong title="${m.invitedUsers ? m.invitedUsers.map(u => u.name).join(', ') : ''}">${m.invitedUsers && m.invitedUsers.length > 0 ? m.invitedUsers.length + ' invitado(s)' : 'Ninguno'}</strong></div>

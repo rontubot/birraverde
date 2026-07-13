@@ -358,11 +358,10 @@
 
             // Format date to local readable format
             const formatDateStr = (dateStr) => {
-                const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
                 if (!dateStr) return '';
                 const parts = dateStr.split('-');
                 if (parts.length !== 3) return dateStr;
-                return `${parseInt(parts[2])} de ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
             };
 
             if (type === 'booking') {
