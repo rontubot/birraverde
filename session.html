@@ -195,8 +195,13 @@
             <a href="/" class="logo">
                 <img src="/birraverde.png" alt="Birraverde">
             </a>
-            <ul class="nav-links">
-                <li><a href="/perfil/">Mi Perfil</a></li>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/servicios/">Servicios</a></li>
+                <li><a href="/sello/">Sello</a></li>
+                <li><a href="/sala/">Reservar Sala</a></li>
+                <li><a href="/perfil/" style="color: var(--primary);">Mi Perfil</a></li>
+                <li><button id="logoutBtn" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Cerrar Sesión</button></li>
             </ul>
         </div>
     </nav>
@@ -246,6 +251,41 @@
             if (!token) {
                 window.location.href = '/login';
                 return;
+            }
+
+            // Configurar barra de navegación dinámica
+            const userStr = localStorage.getItem('birraverde_user');
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    if (user.role === 'admin' || user.role === 'worker') {
+                        const navLinksUl = document.getElementById('navLinks');
+                        if (navLinksUl && !document.getElementById('navInternalMeetingLink')) {
+                            const li = document.createElement('li');
+                            li.id = 'navInternalMeetingLink';
+                            li.innerHTML = '<a href="/reunion-interna/">Reunión Interna</a>';
+                            
+                            const profileLi = Array.from(navLinksUl.children).find(child => child.innerHTML.includes('/perfil/'));
+                            if (profileLi) {
+                                navLinksUl.insertBefore(li, profileLi);
+                            } else {
+                                navLinksUl.appendChild(li);
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+
+            // Configurar botón de cerrar sesión
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.onclick = () => {
+                    localStorage.removeItem('birraverde_token');
+                    localStorage.removeItem('birraverde_user');
+                    window.location.href = '/';
+                };
             }
 
             const urlParams = new URLSearchParams(window.location.search);
