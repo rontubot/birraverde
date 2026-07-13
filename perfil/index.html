@@ -334,6 +334,16 @@
             .profile-container {
                 grid-template-columns: 1fr;
             }
+            .profile-content {
+                padding: 1.25rem !important;
+            }
+            .cards-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+                gap: 1rem !important;
+            }
+            .session-card {
+                padding: 1.25rem !important;
+            }
         }
         
         /* Modal Styles */
@@ -459,7 +469,10 @@
 
                     <!-- All Bookings Panel (Admin/Worker) -->
                     <div id="tab-all-bookings" class="tab-panel">
-                        <h2 style="margin-bottom: 1.5rem; font-size: 1.75rem;">Listado Completo de Reservas</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h2 style="margin: 0; font-size: 1.75rem;">Listado Completo de Reservas</h2>
+                            <a href="/sala/" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem;">Nueva Reserva</a>
+                        </div>
                         <div class="search-bar">
                             <input type="text" id="bookingSearchInput" placeholder="Buscar por artista, correo, fecha o teléfono...">
                         </div>
