@@ -674,11 +674,12 @@
                         document.getElementById('navUsersBtn').style.display = 'block';
                     }
                     document.getElementById('navBandsBtn').style.display = 'block';
-                } else {
-                    if (currentUser.band && currentUser.band.driveLink) {
-                        document.getElementById('navUploadBtn').style.display = 'block';
-                        document.getElementById('uploadBandSubtitle').innerHTML = `Banda: <strong>${currentUser.band.name}</strong>`;
-                    }
+                }
+
+                // Show Upload tab for any user (client, worker, admin) if they belong to a band with a Drive link
+                if (currentUser.band && currentUser.band.driveLink) {
+                    document.getElementById('navUploadBtn').style.display = 'block';
+                    document.getElementById('uploadBandSubtitle').innerHTML = `Banda: <strong>${currentUser.band.name}</strong>`;
                 }
             };
 
