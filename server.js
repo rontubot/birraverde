@@ -172,6 +172,27 @@ const initDatabase = async () => {
       )
     `);
 
+    // Migraciones automáticas (Asegurar que existan nuevas columnas si las tablas ya existían)
+    try {
+      await pgPool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "resetPasswordToken" VARCHAR(255)');
+      await pgPool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "resetPasswordExpires" BIGINT');
+      await pgPool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50)');
+      
+      await pgPool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "userId" VARCHAR(100)');
+      await pgPool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone VARCHAR(100)');
+      await pgPool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS people INTEGER');
+      await pgPool.query('ALTER TABLE bookings ADD COLUMN IF NOT EXISTS duration INTEGER');
+      
+      await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "hostId" VARCHAR(100)');
+      await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "hostName" VARCHAR(100)');
+      await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "hostEmail" VARCHAR(100)');
+      await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "invitedUsers" JSONB');
+      await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS files JSONB');
+      console.log('✅ PostgreSQL schema migrations verified/applied.');
+    } catch (migErr) {
+      console.error('⚠️ Warning: Error running schema migrations:', migErr.message);
+    }
+
     console.log('✅ PostgreSQL tables checked/created.');
 
     const adminEmail = 'birraverdefilms@gmail.com';
