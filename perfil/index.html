@@ -1267,6 +1267,9 @@
                 renderSelectedMembersChips();
                 
                 bandModal.classList.add('active');
+                
+                // Show default alphabetized users list when opening modal
+                renderMemberSearchResults('');
             };
 
             const renderSelectedMembersChips = () => {
@@ -1288,56 +1291,74 @@
                         chip.querySelector('button').onclick = () => {
                             selectedBandMembers = selectedBandMembers.filter(id => id !== u.id);
                             renderSelectedMembersChips();
+                            // Refresh list if dropdown is currently visible
+                            if (memberSearchResults.style.display === 'block') {
+                                renderMemberSearchResults(memberSearchInput.value);
+                            }
                         };
                         selectedMembersList.appendChild(chip);
                     }
                 });
             };
 
+            // RENDER MEMBER SEARCH RESULTS (DYNAMIC SEARCH & DEFAULT LIST)
+            const renderMemberSearchResults = (query = '') => {
+                const cleanedQuery = query.toLowerCase().trim();
+                let filtered = allUsersCached.filter(u => !selectedBandMembers.includes(u.id));
+                
+                if (cleanedQuery) {
+                    filtered = filtered.filter(u => 
+                        u.name.toLowerCase().includes(cleanedQuery) ||
+                        u.email.toLowerCase().includes(cleanedQuery) ||
+                        (u.phone && u.phone.includes(cleanedQuery))
+                    );
+                } else {
+                    // Sort alphabetically by name when empty query
+                    filtered.sort((a, b) => a.name.localeCompare(b.name));
+                }
+                
+                if (filtered.length === 0) {
+                    memberSearchResults.innerHTML = '<div style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;">No se encontraron usuarios.</div>';
+                    memberSearchResults.style.display = 'block';
+                    return;
+                }
+                
+                memberSearchResults.innerHTML = filtered.map(u => `
+                    <div class="search-result-item" data-id="${u.id}" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.2s;">
+                        <div style="font-size: 0.9rem; font-weight: bold;">${u.name}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">${u.email}</div>
+                    </div>
+                `).join('');
+                
+                memberSearchResults.style.display = 'block';
+                
+                // Add click listeners to items
+                memberSearchResults.querySelectorAll('.search-result-item').forEach(item => {
+                    item.onclick = () => {
+                        const id = item.getAttribute('data-id');
+                        selectedBandMembers.push(id);
+                        memberSearchInput.value = '';
+                        renderSelectedMembersChips();
+                        renderMemberSearchResults(memberSearchInput.value);
+                    };
+                });
+            };
+
             // Hook up member search autocomplete
             if (memberSearchInput) {
+                memberSearchInput.addEventListener('focus', () => {
+                    renderMemberSearchResults(memberSearchInput.value);
+                });
+                
                 memberSearchInput.addEventListener('input', (e) => {
-                    const query = e.target.value.toLowerCase().trim();
-                    if (!query) {
-                        memberSearchResults.innerHTML = '';
+                    renderMemberSearchResults(e.target.value);
+                });
+                
+                // Close dropdown if clicked outside
+                document.addEventListener('click', (e) => {
+                    if (!memberSearchInput.contains(e.target) && !memberSearchResults.contains(e.target)) {
                         memberSearchResults.style.display = 'none';
-                        return;
                     }
-                    
-                    const filtered = allUsersCached.filter(u => 
-                        !selectedBandMembers.includes(u.id) && (
-                            u.name.toLowerCase().includes(query) ||
-                            u.email.toLowerCase().includes(query) ||
-                            (u.phone && u.phone.includes(query))
-                        )
-                    ).slice(0, 10);
-                    
-                    if (filtered.length === 0) {
-                        memberSearchResults.innerHTML = '<div style="padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem; text-align: center;">No se encontraron usuarios.</div>';
-                        memberSearchResults.style.display = 'block';
-                        return;
-                    }
-                    
-                    memberSearchResults.innerHTML = filtered.map(u => `
-                        <div class="search-result-item" data-id="${u.id}" style="padding: 0.5rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.2s;">
-                            <div style="font-size: 0.9rem; font-weight: bold;">${u.name}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted);">${u.email}</div>
-                        </div>
-                    `).join('');
-                    
-                    memberSearchResults.style.display = 'block';
-                    
-                    // Add click listeners to items
-                    memberSearchResults.querySelectorAll('.search-result-item').forEach(item => {
-                        item.onclick = () => {
-                            const id = item.getAttribute('data-id');
-                            selectedBandMembers.push(id);
-                            memberSearchInput.value = '';
-                            memberSearchResults.innerHTML = '';
-                            memberSearchResults.style.display = 'none';
-                            renderSelectedMembersChips();
-                        };
-                    });
                 });
                 
                 // Style for search results hover
