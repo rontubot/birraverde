@@ -587,15 +587,16 @@
                         <h2 style="margin: 0; font-size: 1.75rem; margin-bottom: 1.5rem;">Gestión de Contabilidad</h2>
                         
                         <!-- Sub Tabs Navigation -->
-                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; flex-wrap: wrap;">
                             <button id="btnSubTabEntries" class="btn btn-primary" style="padding: 0.5rem 1.2rem; font-size: 0.85rem; justify-content: center;">📝 Ingresos / Egresos</button>
+                            <button id="btnSubTabInvoice" class="btn btn-outline" style="padding: 0.5rem 1.2rem; font-size: 0.85rem; justify-content: center;">🧾 Crear Factura</button>
                             <button id="btnSubTabBook" class="btn btn-outline" style="padding: 0.5rem 1.2rem; font-size: 0.85rem; justify-content: center;">📖 Libro Diario</button>
                         </div>
                         
                         <!-- Sub Tab 1: Form & Recents -->
                         <div id="acc-sub-entries">
                             <form id="accountingForm" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
-                                <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; color: var(--primary);">Registrar Movimiento</h3>
+                                <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; color: var(--primary);">Registrar Movimiento (Transferencia)</h3>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                                     <div>
                                         <label for="accItem" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Item / Concepto</label>
@@ -631,20 +632,47 @@
                                             <th>Fecha</th>
                                             <th>Item</th>
                                             <th>Descripción</th>
+                                            <th>Tipo</th>
                                             <th style="color: #10b981;">Ingreso</th>
                                             <th style="color: #ff4444;">Egreso</th>
                                         </tr>
                                     </thead>
                                     <tbody id="accountingRecentTableBody">
                                         <tr>
-                                            <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando movimientos...</td>
+                                            <td colspan="6" style="text-align: center; color: var(--text-muted);">Cargando movimientos...</td>
                                         </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                         
-                        <!-- Sub Tab 2: Monthly Ledger (Libro Diario) -->
+                        <!-- Sub Tab 2: Invoice Creation Form -->
+                        <div id="acc-sub-invoice" style="display: none;">
+                            <form id="invoiceForm" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+                                <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; color: var(--primary);">Crear Factura (Egreso Banco)</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <label for="invItem" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Item / Concepto de Factura</label>
+                                        <input type="text" id="invItem" required placeholder="Ej: Factura de Equipamiento, Pago de Honorarios" style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                    </div>
+                                    <div>
+                                        <label for="invDate" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Fecha de Factura</label>
+                                        <input type="date" id="invDate" required style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="invDesc" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Descripción / Nro. Factura</label>
+                                    <textarea id="invDesc" rows="3" placeholder="Detalles de la factura..." style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical; outline: none;"></textarea>
+                                </div>
+                                <div style="margin-bottom: 1.5rem;">
+                                    <label for="invExpense" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Monto de Factura (Egreso)</label>
+                                    <input type="number" id="invExpense" min="0.01" step="0.01" required placeholder="0.00" style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">Registrar Factura</button>
+                            </form>
+                        </div>
+                        
+                        <!-- Sub Tab 3: Monthly Ledger (Libro Diario) -->
                         <div id="acc-sub-book" style="display: none;">
                             <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
                                 <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
@@ -687,13 +715,14 @@
                                             <th>Fecha</th>
                                             <th>Item</th>
                                             <th>Descripción</th>
+                                            <th>Tipo</th>
                                             <th style="color: #10b981;">Ingreso</th>
                                             <th style="color: #ff4444;">Egreso</th>
                                         </tr>
                                     </thead>
                                     <tbody id="accountingBookTableBody">
                                         <tr>
-                                            <td colspan="5" style="text-align: center; color: var(--text-muted);">Selecciona un mes y año para ver los registros.</td>
+                                            <td colspan="6" style="text-align: center; color: var(--text-muted);">Selecciona un mes y año para ver los registros.</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1721,23 +1750,26 @@
 
             // --- CONTABILIDAD LOGIC ---
             const btnSubTabEntries = document.getElementById('btnSubTabEntries');
+            const btnSubTabInvoice = document.getElementById('btnSubTabInvoice');
             const btnSubTabBook = document.getElementById('btnSubTabBook');
             const subTabEntries = document.getElementById('acc-sub-entries');
+            const subTabInvoice = document.getElementById('acc-sub-invoice');
             const subTabBook = document.getElementById('acc-sub-book');
             
-            if (btnSubTabEntries && btnSubTabBook) {
-                btnSubTabEntries.onclick = () => {
-                    btnSubTabEntries.className = 'btn btn-primary';
-                    btnSubTabBook.className = 'btn btn-outline';
-                    subTabEntries.style.display = 'block';
-                    subTabBook.style.display = 'none';
+            if (btnSubTabEntries && btnSubTabInvoice && btnSubTabBook) {
+                const switchSubTab = (activeBtn, showContainer) => {
+                    [btnSubTabEntries, btnSubTabInvoice, btnSubTabBook].forEach(btn => {
+                        btn.className = btn === activeBtn ? 'btn btn-primary' : 'btn btn-outline';
+                    });
+                    [subTabEntries, subTabInvoice, subTabBook].forEach(cont => {
+                        cont.style.display = cont === showContainer ? 'block' : 'none';
+                    });
                 };
-                
+
+                btnSubTabEntries.onclick = () => switchSubTab(btnSubTabEntries, subTabEntries);
+                btnSubTabInvoice.onclick = () => switchSubTab(btnSubTabInvoice, subTabInvoice);
                 btnSubTabBook.onclick = () => {
-                    btnSubTabBook.className = 'btn btn-primary';
-                    btnSubTabEntries.className = 'btn btn-outline';
-                    subTabBook.style.display = 'block';
-                    subTabEntries.style.display = 'none';
+                    switchSubTab(btnSubTabBook, subTabBook);
                     filterMonthlyBook();
                 };
             }
@@ -1786,6 +1818,55 @@
                         }
                     } catch (err) {
                         alert('❌ Error de conexión al registrar movimiento.');
+                    }
+                };
+            }
+
+            const invoiceForm = document.getElementById('invoiceForm');
+            if (invoiceForm) {
+                const invDateInput = document.getElementById('invDate');
+                if (invDateInput) {
+                    invDateInput.value = new Date().toISOString().split('T')[0];
+                }
+                
+                invoiceForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const item = document.getElementById('invItem').value;
+                    const date = document.getElementById('invDate').value;
+                    const description = document.getElementById('invDesc').value;
+                    const expense = parseFloat(document.getElementById('invExpense').value || 0);
+                    
+                    if (expense <= 0) {
+                        alert('⚠️ El monto de la factura debe ser mayor que 0.');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/accounting', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ item, description, income: 0, expense, date, type: 'Banco' })
+                        });
+                        
+                        const data = await response.json();
+                        if (response.ok) {
+                            alert('✅ Factura registrada con éxito (Egreso en Banco).');
+                            invoiceForm.reset();
+                            if (invDateInput) {
+                                invDateInput.value = new Date().toISOString().split('T')[0];
+                            }
+                            fetchAccounting();
+                            if (btnSubTabEntries) {
+                                btnSubTabEntries.click();
+                            }
+                        } else {
+                            alert(`❌ Error: ${data.error || 'Ocurrió un problema.'}`);
+                        }
+                    } catch (err) {
+                        alert('❌ Error de conexión al registrar factura.');
                     }
                 };
             }
@@ -1844,7 +1925,7 @@
                 
                 const recents = allAccountingCached.slice(0, 10);
                 if (recents.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 6 : 5}" style="text-align: center; color: var(--text-muted);">No hay movimientos registrados.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 7 : 6}" style="text-align: center; color: var(--text-muted);">No hay movimientos registrados.</td></tr>`;
                     return;
                 }
                 
@@ -1853,6 +1934,7 @@
                         <td data-label="Fecha">${formatDateStr(m.date)}</td>
                         <td data-label="Item"><strong>${m.item}</strong></td>
                         <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
+                        <td data-label="Tipo"><span class="role-badge ${m.type === 'Banco' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
                         <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         ${currentUser.role === 'admin' ? `
@@ -1906,7 +1988,7 @@
                 filtered.sort((a, b) => a.date.localeCompare(b.date));
                 
                 if (filtered.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 6 : 5}" style="text-align: center; color: var(--text-muted);">No hay registros contables en este período.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 7 : 6}" style="text-align: center; color: var(--text-muted);">No hay registros contables en este período.</td></tr>`;
                     document.getElementById('summaryTotalIncome').innerText = '$0,00';
                     document.getElementById('summaryTotalExpense').innerText = '$0,00';
                     document.getElementById('summaryBalance').innerText = '$0,00';
@@ -1927,6 +2009,7 @@
                         <td data-label="Fecha">${formatDateStr(m.date)}</td>
                         <td data-label="Item"><strong>${m.item}</strong></td>
                         <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
+                        <td data-label="Tipo"><span class="role-badge ${m.type === 'Banco' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
                         <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         ${currentUser.role === 'admin' ? `

@@ -226,6 +226,7 @@ const initDatabase = async () => {
         id VARCHAR(100) PRIMARY KEY,
         item VARCHAR(255) NOT NULL,
         description TEXT,
+        type VARCHAR(50) DEFAULT 'Libro',
         income NUMERIC DEFAULT 0,
         expense NUMERIC DEFAULT 0,
         date VARCHAR(10) NOT NULL,
@@ -249,6 +250,7 @@ const initDatabase = async () => {
       await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "hostEmail" VARCHAR(100)');
       await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "invitedUsers" JSONB');
       await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS files JSONB');
+      await pgPool.query('ALTER TABLE accounting ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT \'Libro\'');
       console.log('✅ PostgreSQL schema migrations verified/applied.');
     } catch (migErr) {
       console.error('⚠️ Warning: Error running schema migrations:', migErr.message);
@@ -576,9 +578,15 @@ const dbGetUserBand = async (userId) => {
 const dbGetAccounting = async () => {
   if (isPostgres) {
     const res = await pgPool.query('SELECT * FROM accounting ORDER BY date DESC, "createdAt" DESC');
-    return res.rows;
+    return res.rows.map(r => ({
+      ...r,
+      type: r.type || 'Libro'
+    }));
   }
-  return [...accounting].sort((a, b) => {
+  return [...accounting].map(m => ({
+    ...m,
+    type: m.type || 'Libro'
+  })).sort((a, b) => {
     const cmp = b.date.localeCompare(a.date);
     if (cmp !== 0) return cmp;
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
@@ -588,8 +596,8 @@ const dbGetAccounting = async () => {
 const dbCreateAccounting = async (movement) => {
   if (isPostgres) {
     await pgPool.query(
-      `INSERT INTO accounting (id, item, description, income, expense, date) VALUES ($1, $2, $3, $4, $5, $6)`,
-      [movement.id, movement.item, movement.description, movement.income || 0, movement.expense || 0, movement.date]
+      `INSERT INTO accounting (id, item, description, income, expense, date, type) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [movement.id, movement.item, movement.description, movement.income || 0, movement.expense || 0, movement.date, movement.type || 'Libro']
     );
   } else {
     accounting.push(movement);
@@ -1636,7 +1644,7 @@ app.get('/api/accounting', authenticateToken, requireRole(['admin', 'contabilida
 
 app.post('/api/accounting', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
   try {
-    const { item, description, income, expense, date } = req.body;
+    const { item, description, income, expense, date, type } = req.body;
     if (!item || !date) {
       return res.status(400).json({ error: 'El item y la fecha son obligatorios.' });
     }
@@ -1648,6 +1656,7 @@ app.post('/api/accounting', authenticateToken, requireRole(['admin', 'contabilid
       income: Number(income || 0),
       expense: Number(expense || 0),
       date, // YYYY-MM-DD
+      type: type || 'Libro',
       createdAt: new Date()
     };
     
@@ -1682,6 +1691,7 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
       'Item': m.item,
       'Descripción': m.description || '',
       'Fecha': m.date.split('-').reverse().join('/'), // DD/MM/YYYY
+      'Tipo': m.type || 'Libro',
       'Ingreso': Number(m.income || 0),
       'Egreso': Number(m.expense || 0)
     }));
@@ -1692,12 +1702,13 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
     const balance = totalIncome - totalExpense;
     
     // Separator row
-    excelData.push({ 'Item': '', 'Descripción': '', 'Fecha': '', 'Ingreso': '', 'Egreso': '' });
+    excelData.push({ 'Item': '', 'Descripción': '', 'Fecha': '', 'Tipo': '', 'Ingreso': '', 'Egreso': '' });
     
     excelData.push({
       'Item': 'TOTALES',
       'Descripción': 'Total acumulado',
       'Fecha': '',
+      'Tipo': '',
       'Ingreso': totalIncome,
       'Egreso': totalExpense
     });
@@ -1706,6 +1717,7 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
       'Item': 'BALANCE NETO',
       'Descripción': 'Ingresos - Egresos',
       'Fecha': '',
+      'Tipo': '',
       'Ingreso': balance,
       'Egreso': ''
     });
