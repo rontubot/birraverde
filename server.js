@@ -575,35 +575,113 @@ const dbGetUserBand = async (userId) => {
   return allBands.find(b => (b.members || []).includes(userId)) || null;
 };
 
+const dbPurgeExpiredAccountingTrash = async () => {
+  try {
+    if (isPostgres) {
+      await pgPool.query("DELETE FROM accounting WHERE deleted = TRUE AND deleted_at < NOW() - INTERVAL '15 days'");
+    } else {
+      const fifteenDaysAgo = new Date();
+      fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+      const initialLength = accounting.length;
+      accounting = accounting.filter(m => !(m.deleted && new Date(m.deleted_at) < fifteenDaysAgo));
+      if (accounting.length !== initialLength) {
+        saveAccounting();
+      }
+    }
+  } catch (err) {
+    console.error('Error purging expired trash:', err);
+  }
+};
+
 const dbGetAccounting = async () => {
+  await dbPurgeExpiredAccountingTrash();
   if (isPostgres) {
-    const res = await pgPool.query('SELECT * FROM accounting ORDER BY date DESC, "createdAt" DESC');
+    const res = await pgPool.query('SELECT * FROM accounting WHERE deleted IS NOT TRUE ORDER BY date DESC, "createdAt" DESC');
     return res.rows.map(r => ({
       ...r,
       type: r.type || 'Libro'
     }));
   }
-  return [...accounting].map(m => ({
-    ...m,
-    type: m.type || 'Libro'
-  })).sort((a, b) => {
-    const cmp = b.date.localeCompare(a.date);
-    if (cmp !== 0) return cmp;
-    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-  });
+  return [...accounting]
+    .filter(m => !m.deleted)
+    .map(m => ({
+      ...m,
+      type: m.type || 'Libro'
+    })).sort((a, b) => {
+      const cmp = b.date.localeCompare(a.date);
+      if (cmp !== 0) return cmp;
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+};
+
+const dbGetAccountingTrash = async () => {
+  await dbPurgeExpiredAccountingTrash();
+  if (isPostgres) {
+    const res = await pgPool.query(`
+      SELECT * FROM accounting 
+      WHERE deleted = TRUE 
+        AND deleted_at >= NOW() - INTERVAL '15 days' 
+      ORDER BY deleted_at DESC
+    `);
+    return res.rows.map(r => ({
+      ...r,
+      type: r.type || 'Libro'
+    }));
+  }
+  const fifteenDaysAgo = new Date();
+  fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+  return [...accounting]
+    .filter(m => m.deleted && new Date(m.deleted_at) >= fifteenDaysAgo)
+    .map(m => ({
+      ...m,
+      type: m.type || 'Libro'
+    })).sort((a, b) => new Date(b.deleted_at) - new Date(a.deleted_at));
 };
 
 const dbCreateAccounting = async (movement) => {
   if (isPostgres) {
     await pgPool.query(
-      `INSERT INTO accounting (id, item, description, income, expense, date, type) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [movement.id, movement.item, movement.description, movement.income || 0, movement.expense || 0, movement.date, movement.type || 'Libro']
+      `INSERT INTO accounting (id, item, description, income, expense, date, type, deleted) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [movement.id, movement.item, movement.description, movement.income || 0, movement.expense || 0, movement.date, movement.type || 'Libro', false]
     );
   } else {
+    movement.deleted = false;
     accounting.push(movement);
     saveAccounting();
   }
   return movement;
+};
+
+const dbSoftDeleteAccounting = async (id) => {
+  if (isPostgres) {
+    await pgPool.query(
+      'UPDATE accounting SET deleted = TRUE, deleted_at = NOW() WHERE id = $1',
+      [id]
+    );
+  } else {
+    const item = accounting.find(m => m.id === id);
+    if (item) {
+      item.deleted = true;
+      item.deleted_at = new Date().toISOString();
+      saveAccounting();
+    }
+  }
+};
+
+const dbRestoreAccounting = async (id) => {
+  if (isPostgres) {
+    await pgPool.query(
+      'UPDATE accounting SET deleted = FALSE, deleted_at = NULL WHERE id = $1',
+      [id]
+    );
+  } else {
+    const item = accounting.find(m => m.id === id);
+    if (item) {
+      item.deleted = false;
+      item.deleted_at = null;
+      saveAccounting();
+    }
+  }
 };
 
 // Middlewares de autenticación y autorización
@@ -1741,23 +1819,32 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
 app.delete('/api/accounting/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params;
-    if (isPostgres) {
-      const result = await pgPool.query('DELETE FROM accounting WHERE id = $1', [id]);
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Movimiento no encontrado.' });
-      }
-    } else {
-      const idx = accounting.findIndex(m => m.id === id);
-      if (idx === -1) {
-        return res.status(404).json({ error: 'Movimiento no encontrado.' });
-      }
-      accounting.splice(idx, 1);
-      saveAccounting();
-    }
-    res.json({ success: true, message: 'Movimiento eliminado con éxito.' });
+    await dbSoftDeleteAccounting(id);
+    res.json({ success: true, message: 'Movimiento enviado a la papelera (durará 15 días).' });
   } catch (err) {
     console.error('Error deleting accounting movement:', err);
     res.status(500).json({ error: 'Error al eliminar el movimiento contable.' });
+  }
+});
+
+app.get('/api/accounting/trash', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const trash = await dbGetAccountingTrash();
+    res.json(trash);
+  } catch (err) {
+    console.error('Error fetching accounting trash:', err);
+    res.status(500).json({ error: 'Error al obtener la papelera.' });
+  }
+});
+
+app.post('/api/accounting/restore/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await dbRestoreAccounting(id);
+    res.json({ success: true, message: 'Movimiento restaurado con éxito.' });
+  } catch (err) {
+    console.error('Error restoring accounting movement:', err);
+    res.status(500).json({ error: 'Error al restaurar el movimiento contable.' });
   }
 });
 

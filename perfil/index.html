@@ -584,7 +584,12 @@
 
                     <!-- Accounting Panel (Contabilidad only) -->
                     <div id="tab-accounting" class="tab-panel">
-                        <h2 style="margin: 0; font-size: 1.75rem; margin-bottom: 1.5rem;">Gestión de Contabilidad</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                            <h2 style="margin: 0; font-size: 1.75rem;">Gestión de Contabilidad</h2>
+                            <button id="btnOpenTrash" class="btn btn-outline" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: none; align-items: center; gap: 0.4rem; justify-content: center; border-color: #ff4444; color: #ff4444; border-radius: 8px; cursor: pointer;">
+                                🗑️ Papelera
+                            </button>
+                        </div>
                         
                         <!-- Sub Tabs Navigation -->
                         <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; flex-wrap: wrap;">
@@ -1963,15 +1968,13 @@
                 // Hook up delete buttons
                 if (currentUser.role === 'admin') {
                     tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
-                        btn.onclick = async (e) => {
+                        btn.onclick = (e) => {
                             if (e) {
                                 e.preventDefault();
                                 e.stopPropagation();
                             }
                             const id = btn.getAttribute('data-id');
-                            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este registro contable?')) {
-                                await deleteAccountingEntry(id);
-                            }
+                            openDeleteModal(id);
                         };
                     });
                 }
@@ -2097,15 +2100,13 @@
                 // Hook up delete buttons
                 if (currentUser.role === 'admin') {
                     tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
-                        btn.onclick = async (e) => {
+                        btn.onclick = (e) => {
                             if (e) {
                                 e.preventDefault();
                                 e.stopPropagation();
                             }
                             const id = btn.getAttribute('data-id');
-                            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este registro contable?')) {
-                                await deleteAccountingEntry(id);
-                            }
+                            openDeleteModal(id);
                         };
                     });
                 }
@@ -2170,6 +2171,138 @@
                 };
             }
 
+            // --- PAPELERA Y MODALS DE CONFIRMACIÓN DE CONTABILIDAD ---
+            let activeDeleteId = null;
+            let activeRestoreId = null;
+
+            const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            const restoreConfirmModal = document.getElementById('restoreConfirmModal');
+            const trashBinModal = document.getElementById('trashBinModal');
+
+            const btnConfirmDelete = document.getElementById('btnConfirmDelete');
+            const btnCancelDelete = document.getElementById('btnCancelDelete');
+            const btnConfirmRestore = document.getElementById('btnConfirmRestore');
+            const btnCancelRestore = document.getElementById('btnCancelRestore');
+            
+            const btnOpenTrash = document.getElementById('btnOpenTrash');
+            const btnCloseTrashModal = document.getElementById('btnCloseTrashModal');
+
+            const openDeleteModal = (id) => {
+                activeDeleteId = id;
+                if (deleteConfirmModal) deleteConfirmModal.classList.add('active');
+            };
+
+            const closeDeleteModal = () => {
+                activeDeleteId = null;
+                if (deleteConfirmModal) deleteConfirmModal.classList.remove('active');
+            };
+
+            const openRestoreModal = (id) => {
+                activeRestoreId = id;
+                if (restoreConfirmModal) restoreConfirmModal.classList.add('active');
+            };
+
+            const closeRestoreModal = () => {
+                activeRestoreId = null;
+                if (restoreConfirmModal) restoreConfirmModal.classList.remove('active');
+            };
+
+            if (btnCancelDelete) btnCancelDelete.onclick = closeDeleteModal;
+            if (btnConfirmDelete) {
+                btnConfirmDelete.onclick = async () => {
+                    if (!activeDeleteId) return;
+                    await deleteAccountingEntry(activeDeleteId);
+                    closeDeleteModal();
+                };
+            }
+
+            if (btnCancelRestore) btnCancelRestore.onclick = closeRestoreModal;
+            if (btnConfirmRestore) {
+                btnConfirmRestore.onclick = async () => {
+                    if (!activeRestoreId) return;
+                    try {
+                        const response = await fetch(`/api/accounting/restore/${activeRestoreId}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await response.json();
+                        if (response.ok) {
+                            alert('✅ Registro restaurado con éxito.');
+                            fetchAccounting();
+                            fetchTrashMovements();
+                        } else {
+                            alert(`❌ Error: ${data.error || 'No se pudo restaurar.'}`);
+                        }
+                    } catch (err) {
+                        alert('❌ Error de conexión al restaurar.');
+                    }
+                    closeRestoreModal();
+                };
+            }
+
+            const fetchTrashMovements = async () => {
+                const tbody = document.getElementById('trashTableBody');
+                if (!tbody) return;
+                
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando papelera...</td></tr>`;
+                
+                try {
+                    const response = await fetch('/api/accounting/trash', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        const trash = await response.json();
+                        if (trash.length === 0) {
+                            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">La papelera está vacía.</td></tr>`;
+                            return;
+                        }
+                        
+                        tbody.innerHTML = trash.map(m => `
+                            <tr>
+                                <td data-label="Fecha">${formatDateStr(m.date)}</td>
+                                <td data-label="Eliminado el">${m.deleted_at ? formatDateStr(m.deleted_at.slice(0, 10)) : '-'}</td>
+                                <td data-label="Item"><strong>${m.item}</strong></td>
+                                <td data-label="Tipo"><span class="role-badge ${m.type === 'Banco' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
+                                <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                                <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                                <td data-label="Acción" style="text-align: center;">
+                                    <button type="button" class="btn btn-primary btn-restore-acc" data-id="${m.id}" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🔄 Restaurar</button>
+                                </td>
+                            </tr>
+                        `).join('');
+                        
+                        tbody.querySelectorAll('.btn-restore-acc').forEach(btn => {
+                            btn.onclick = (e) => {
+                                if (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                }
+                                const id = btn.getAttribute('data-id');
+                                openRestoreModal(id);
+                            };
+                        });
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ff4444;">Error al cargar la papelera.</td></tr>`;
+                    }
+                } catch (err) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #ff4444;">Error de conexión.</td></tr>`;
+                }
+            };
+
+            if (btnOpenTrash) {
+                btnOpenTrash.onclick = () => {
+                    if (trashBinModal) {
+                        trashBinModal.classList.add('active');
+                        fetchTrashMovements();
+                    }
+                };
+            }
+            if (btnCloseTrashModal) {
+                btnCloseTrashModal.onclick = () => {
+                    if (trashBinModal) trashBinModal.classList.remove('active');
+                };
+            }
+
             const loadDataBasedOnRole = () => {
                 if (currentUser.role === 'admin' || currentUser.role === 'worker' || currentUser.role === 'contabilidad') {
                     fetchAllBookings();
@@ -2178,6 +2311,10 @@
                     fetchUsers();
                     if (currentUser.role === 'admin' || currentUser.role === 'contabilidad') {
                         fetchAccounting();
+                        const btnOpenTrash = document.getElementById('btnOpenTrash');
+                        if (btnOpenTrash && currentUser.role === 'admin') {
+                            btnOpenTrash.style.display = 'inline-flex';
+                        }
                     }
                 } else {
                     fetchClientBookings();
@@ -2366,6 +2503,73 @@
                     <button type="submit" class="btn btn-primary" style="flex: 1; justify-content: center;">Guardar</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Delete Modal -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content" style="max-width: 450px; background: #1a1a1a; border: 1px solid var(--glass-border); border-radius: 16px; padding: 2rem; position: relative;">
+            <h3 style="margin-top: 0; color: #ff4444; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                ⚠️ Confirmar Eliminación
+            </h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5;">
+                ¿Estás seguro de que deseas eliminar este registro contable? Se moverá a la papelera por 15 días antes de borrarse permanentemente.
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button id="btnCancelDelete" class="btn btn-outline" style="padding: 0.6rem 1.2rem; flex: 1; justify-content: center;">Cancelar</button>
+                <button id="btnConfirmDelete" class="btn" style="padding: 0.6rem 1.2rem; background: #ff4444; color: white; border: none; border-radius: 8px; cursor: pointer; flex: 1; justify-content: center; font-weight: bold; display: flex; align-items: center;">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Confirm Restore Modal -->
+    <div id="restoreConfirmModal" class="modal">
+        <div class="modal-content" style="max-width: 450px; background: #1a1a1a; border: 1px solid var(--glass-border); border-radius: 16px; padding: 2rem; position: relative;">
+            <h3 style="margin-top: 0; color: var(--primary); font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                🔄 Confirmar Restauración
+            </h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem; line-height: 1.5;">
+                ¿Estás seguro de restaurar este movimiento? Esto podría alterar los balances de los meses pasados.
+            </p>
+            <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                <button id="btnCancelRestore" class="btn btn-outline" style="padding: 0.6rem 1.2rem; flex: 1; justify-content: center;">Cancelar</button>
+                <button id="btnConfirmRestore" class="btn btn-primary" style="padding: 0.6rem 1.2rem; flex: 1; justify-content: center; font-weight: bold;">Restaurar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trash Bin Modal -->
+    <div id="trashBinModal" class="modal">
+        <div class="modal-content" style="max-width: 800px; background: #1a1a1a; border: 1px solid var(--glass-border); border-radius: 16px; padding: 2rem; position: relative; max-height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="color: var(--primary); display: flex; align-items: center; gap: 0.5rem; margin: 0; font-size: 1.5rem;">
+                    🗑️ Papelera de Reciclaje (Últimos 15 días)
+                </h3>
+                <button class="modal-close" id="btnCloseTrashModal" style="background: none; border: none; color: var(--text-muted); font-size: 1.8rem; cursor: pointer; line-height: 1;">&times;</button>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem; margin-top: 0;">
+                Los movimientos eliminados permanecerán aquí durante 15 días. Después de ese período, se borrarán permanentemente de forma automática.
+            </p>
+            <div style="overflow-y: auto; flex: 1; min-height: 250px;">
+                <table class="booking-table" style="width: 100%; margin-top: 0;">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Eliminado el</th>
+                            <th>Item</th>
+                            <th>Tipo</th>
+                            <th style="color: #10b981;">Ingreso</th>
+                            <th style="color: #ff4444;">Egreso</th>
+                            <th style="text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trashTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-muted);">Cargando papelera...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
