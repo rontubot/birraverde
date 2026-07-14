@@ -1179,7 +1179,7 @@ app.post('/api/admin/users/role', authenticateToken, requireRole(['admin']), asy
       return res.status(400).json({ error: 'Faltan campos obligatorios.' });
     }
 
-    const allowedRoles = ['client', 'worker', 'admin'];
+    const allowedRoles = ['client', 'worker', 'admin', 'contabilidad'];
     if (!allowedRoles.includes(role)) {
       return res.status(400).json({ error: 'Rol no permitido.' });
     }
