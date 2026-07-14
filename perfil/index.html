@@ -1956,42 +1956,54 @@
             };
 
             const renderAccountingRecentTable = () => {
-                const tbody = document.getElementById('accountingRecentTableBody');
-                if (!tbody) return;
-                
+                const container = document.getElementById('accountingRecentTableBody');
+                if (!container) return;
+
                 const recents = allAccountingCached.slice(0, 10);
                 if (recents.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 7 : 6}" style="text-align: center; color: var(--text-muted);">No hay movimientos registrados.</td></tr>`;
+                    container.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No hay movimientos registrados.</td></tr>`;
                     return;
                 }
-                
-                tbody.innerHTML = recents.map(m => `
-                    <tr>
-                        <td data-label="Fecha">${formatDateStr(m.date)}</td>
-                        <td data-label="Item"><strong>${m.item}</strong></td>
-                        <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
-                        <td data-label="Tipo"><span class="role-badge ${m.type === 'Banco' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
-                        <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
-                        <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
-                        ${currentUser.role === 'admin' ? `
-                        <td data-label="Acciones">
-                            <button type="button" class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
-                        </td>
-                        ` : ''}
-                    </tr>
-                `).join('');
 
-                // Hook up delete buttons
+                // Render as cards instead of table rows
+                const parent = container.closest('table') || container.parentElement;
+                const wrapper = parent.parentElement;
+
+                // Build card grid HTML and inject before the table
+                let existingGrid = wrapper.querySelector('.acc-cards-grid');
+                if (!existingGrid) {
+                    existingGrid = document.createElement('div');
+                    existingGrid.className = 'acc-cards-grid';
+                    existingGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem;';
+                    parent.parentNode.insertBefore(existingGrid, parent);
+                    parent.style.display = 'none';
+                }
+
+                existingGrid.innerHTML = recents.map(m => {
+                    const income  = Number(m.income  || 0);
+                    const expense = Number(m.expense || 0);
+                    const isBanco = m.type === 'Banco';
+                    return `
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:14px;padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:0.6rem;min-height:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+                            <strong style="font-size:0.97rem;line-height:1.3;flex:1;word-break:break-word;">${m.item}</strong>
+                            <span class="role-badge ${isBanco ? 'role-worker' : 'role-client'}" style="font-size:0.7rem;padding:0.1rem 0.5rem;white-space:nowrap;flex-shrink:0;">${m.type || 'Libro'}</span>
+                        </div>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">${formatDateStr(m.date)}</span>
+                        <div style="display:flex;gap:1rem;">
+                            <span style="color:#10b981;font-weight:700;font-size:0.9rem;">▲ $${income.toLocaleString('es-ES',{minimumFractionDigits:2})}</span>
+                            <span style="color:#ff4444;font-weight:700;font-size:0.9rem;">▼ $${expense.toLocaleString('es-ES',{minimumFractionDigits:2})}</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                            <a href="/movimiento/?id=${m.id}" class="btn btn-outline" style="flex:1;padding:0.3rem 0.5rem;font-size:0.78rem;justify-content:center;border-radius:6px;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem;">👁️ Ver</a>
+                            ${currentUser.role === 'admin' ? `<button type="button" class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="flex:1;padding:0.3rem 0.5rem;font-size:0.78rem;border-color:#ff4444;color:#ff4444;border-radius:6px;justify-content:center;display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;">🗑️ Eliminar</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
                 if (currentUser.role === 'admin') {
-                    tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
-                        btn.onclick = (e) => {
-                            if (e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                            const id = btn.getAttribute('data-id');
-                            openDeleteModal(id);
-                        };
+                    existingGrid.querySelectorAll('.btn-delete-acc').forEach(btn => {
+                        btn.onclick = (e) => { e && e.preventDefault(); e && e.stopPropagation(); openDeleteModal(btn.getAttribute('data-id')); };
                     });
                 }
             };
@@ -2097,33 +2109,43 @@
                     return;
                 }
                 
-                tbody.innerHTML = filtered.map(m => `
-                    <tr>
-                        <td data-label="Fecha">${formatDateStr(m.date)}</td>
-                        <td data-label="Item"><strong>${m.item}</strong></td>
-                        <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
-                        <td data-label="Tipo"><span class="role-badge ${m.type === 'Banco' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
-                        <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
-                        <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
-                        ${currentUser.role === 'admin' ? `
-                        <td data-label="Acciones">
-                            <button type="button" class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
-                        </td>
-                        ` : ''}
-                    </tr>
-                `).join('');
+                // Render book movements as cards
+                const bookTable = tbody.closest('table') || tbody.parentElement;
+                const bookWrapper = bookTable.parentElement;
+                let bookGrid = bookWrapper.querySelector('.acc-book-cards-grid');
+                if (!bookGrid) {
+                    bookGrid = document.createElement('div');
+                    bookGrid.className = 'acc-book-cards-grid';
+                    bookGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;margin-bottom:1.5rem;';
+                    bookTable.parentNode.insertBefore(bookGrid, bookTable);
+                    bookTable.style.display = 'none';
+                }
 
-                // Hook up delete buttons
+                bookGrid.innerHTML = filtered.map(m => {
+                    const income  = Number(m.income  || 0);
+                    const expense = Number(m.expense || 0);
+                    const isBanco = m.type === 'Banco';
+                    return `
+                    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:14px;padding:1.1rem 1.25rem;display:flex;flex-direction:column;gap:0.6rem;min-height:0;">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;">
+                            <strong style="font-size:0.97rem;line-height:1.3;flex:1;word-break:break-word;">${m.item}</strong>
+                            <span class="role-badge ${isBanco ? 'role-worker' : 'role-client'}" style="font-size:0.7rem;padding:0.1rem 0.5rem;white-space:nowrap;flex-shrink:0;">${m.type || 'Libro'}</span>
+                        </div>
+                        <span style="font-size:0.8rem;color:var(--text-muted);">${formatDateStr(m.date)}</span>
+                        <div style="display:flex;gap:1rem;">
+                            <span style="color:#10b981;font-weight:700;font-size:0.9rem;">▲ $${income.toLocaleString('es-ES',{minimumFractionDigits:2})}</span>
+                            <span style="color:#ff4444;font-weight:700;font-size:0.9rem;">▼ $${expense.toLocaleString('es-ES',{minimumFractionDigits:2})}</span>
+                        </div>
+                        <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+                            <a href="/movimiento/?id=${m.id}" class="btn btn-outline" style="flex:1;padding:0.3rem 0.5rem;font-size:0.78rem;justify-content:center;border-radius:6px;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem;">👁️ Ver</a>
+                            ${currentUser.role === 'admin' ? `<button type="button" class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="flex:1;padding:0.3rem 0.5rem;font-size:0.78rem;border-color:#ff4444;color:#ff4444;border-radius:6px;justify-content:center;display:inline-flex;align-items:center;gap:0.3rem;cursor:pointer;">🗑️ Eliminar</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
                 if (currentUser.role === 'admin') {
-                    tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
-                        btn.onclick = (e) => {
-                            if (e) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                            const id = btn.getAttribute('data-id');
-                            openDeleteModal(id);
-                        };
+                    bookGrid.querySelectorAll('.btn-delete-acc').forEach(btn => {
+                        btn.onclick = (e) => { e && e.preventDefault(); e && e.stopPropagation(); openDeleteModal(btn.getAttribute('data-id')); };
                     });
                 }
                 

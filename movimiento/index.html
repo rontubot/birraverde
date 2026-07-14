@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movimiento Contable | Birraverde</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <link rel="icon" type="image/png" href="/isotipo.png">
+    <style>
+        .details-container {
+            max-width: 720px;
+            margin: 4rem auto;
+            padding: 0 1.5rem;
+        }
+        .details-card {
+            background: var(--bg-card);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .details-badge {
+            display: inline-block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 0.4rem 1.1rem;
+            border-radius: 100px;
+            margin-bottom: 1.5rem;
+        }
+        .badge-banco {
+            background: rgba(0, 255, 65, 0.12);
+            color: var(--primary);
+            border: 1px solid rgba(0, 255, 65, 0.25);
+        }
+        .badge-libro {
+            background: rgba(96, 165, 250, 0.12);
+            color: #60a5fa;
+            border: 1px solid rgba(96, 165, 250, 0.25);
+        }
+        .details-title {
+            font-size: 2.1rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 0.4rem 0;
+            line-height: 1.25;
+        }
+        .details-subtitle {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin: 0 0 2.5rem 0;
+            font-family: monospace;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem 2rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        @media (max-width: 550px) {
+            .details-grid { grid-template-columns: 1fr; }
+            .details-card { padding: 2rem 1.5rem; }
+            .details-title { font-size: 1.6rem; }
+        }
+        .details-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .details-item-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .details-item-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #fff;
+        }
+        .amount-income  { color: #10b981; }
+        .amount-expense { color: #ff4444; }
+        .amount-zero    { color: var(--text-muted); }
+        .notes-box {
+            background: rgba(255,255,255,0.01);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        .notes-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            margin-top: 0;
+        }
+        .notes-content {
+            color: #fff;
+            line-height: 1.65;
+            white-space: pre-wrap;
+            font-size: 0.97rem;
+            margin: 0;
+        }
+        .details-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .balance-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+        .balance-box {
+            flex: 1;
+            min-width: 130px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .balance-box-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-muted);
+        }
+        .balance-box-value {
+            font-size: 1.55rem;
+            font-weight: 800;
+        }
+        /* PRINT */
+        @media print {
+            nav, .details-actions, .bg-gradient, .noise { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+            .details-card {
+                border: 1px solid #ccc;
+                box-shadow: none;
+                padding: 1.5rem;
+                border-radius: 8px;
+                background: #fff !important;
+            }
+            .details-container { margin: 1rem auto; }
+            .details-title, .details-item-value { color: #000 !important; }
+            .details-item-label, .notes-title, .details-subtitle { color: #555 !important; }
+            .details-badge { border: 1px solid #000; color: #000 !important; background: #eee !important; }
+            .amount-income  { color: #007700 !important; }
+            .amount-expense { color: #cc0000 !important; }
+            .amount-zero    { color: #666 !important; }
+            .balance-box { border: 1px solid #ccc; background: #f9f9f9 !important; }
+            .balance-box-value { color: #000 !important; }
+            .notes-box { border: 1px solid #ccc; background: #f9f9f9 !important; }
+            .notes-content, .notes-title { color: #000 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-gradient"></div>
+    <div class="noise"></div>
+
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="/birraverde.png" alt="Birraverde">
+            </a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/servicios/">Servicios</a></li>
+                <li><a href="/sello/">Sello</a></li>
+                <li><a href="/sala/">Reservar Sala</a></li>
+                <li><a href="/perfil/" style="color: var(--primary);">Mi Perfil</a></li>
+                <li><button id="logoutBtn" class="btn btn-outline" style="padding: 0.5rem 1.5rem">Cerrar Sesión</button></li>
+            </ul>
+            <button class="hamburger" id="hamburger" aria-label="Menú">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <main class="details-container">
+        <div class="details-card">
+            <div id="loader" style="text-align: center; padding: 3rem 0;">
+                <p style="color: var(--text-muted);">Cargando detalles del movimiento...</p>
+            </div>
+
+            <div id="content" style="display: none;">
+                <span id="movBadge" class="details-badge badge-banco">Banco</span>
+                <h1 id="movTitle" class="details-title">–</h1>
+                <p id="movIdEl" class="details-subtitle">–</p>
+
+                <div class="balance-row">
+                    <div class="balance-box">
+                        <span class="balance-box-label">💚 Ingreso</span>
+                        <span class="balance-box-value amount-income" id="movIncome">$0,00</span>
+                    </div>
+                    <div class="balance-box">
+                        <span class="balance-box-label">🔴 Egreso</span>
+                        <span class="balance-box-value amount-expense" id="movExpense">$0,00</span>
+                    </div>
+                    <div class="balance-box">
+                        <span class="balance-box-label">⚖️ Neto</span>
+                        <span class="balance-box-value" id="movNet">$0,00</span>
+                    </div>
+                </div>
+
+                <div class="details-grid" id="movGrid"></div>
+
+                <div class="notes-box" id="notesBox" style="display: none;">
+                    <p class="notes-title">📝 Descripción / Notas</p>
+                    <p class="notes-content" id="movNotes"></p>
+                </div>
+
+                <div class="details-actions">
+                    <a href="/perfil/" class="btn btn-outline">← Volver al Perfil</a>
+                    <button onclick="window.print()" class="btn btn-primary">🖨️ Imprimir / PDF</button>
+                </div>
+            </div>
+
+            <div id="errorMsg" style="display: none; text-align: center; padding: 3rem 0;">
+                <p style="color: #ff4444; font-size: 1.1rem; line-height: 1.7;">
+                    ❌ No se pudo cargar el movimiento.<br>
+                    <a href="/perfil/" style="color: var(--primary);">← Volver al Perfil</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const token = localStorage.getItem('birraverde_token');
+        if (!token) { window.location.href = '/login'; return; }
+
+        // Nav auth
+        try {
+            const meRes = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!meRes.ok) { window.location.href = '/login'; return; }
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.onclick = () => {
+                    localStorage.removeItem('birraverde_token');
+                    window.location.href = '/login';
+                };
+            }
+            const hamburger = document.getElementById('hamburger');
+            const navLinks  = document.getElementById('navLinks');
+            const navOverlay = document.getElementById('navOverlay');
+            if (hamburger) {
+                hamburger.addEventListener('click', () => {
+                    hamburger.classList.toggle('active');
+                    navLinks.classList.toggle('active');
+                    navOverlay.classList.toggle('active');
+                });
+                navOverlay.addEventListener('click', () => {
+                    hamburger.classList.remove('active');
+                    navLinks.classList.remove('active');
+                    navOverlay.classList.remove('active');
+                });
+            }
+        } catch (e) {
+            window.location.href = '/login';
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const movId  = params.get('id');
+        if (!movId) { showError(); return; }
+
+        try {
+            const res = await fetch(`/api/accounting/${movId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!res.ok) { showError(); return; }
+            renderMovement(await res.json());
+        } catch (e) {
+            showError();
+        }
+
+        function showError() {
+            document.getElementById('loader').style.display  = 'none';
+            document.getElementById('errorMsg').style.display = 'block';
+        }
+
+        function fmt(dateStr) {
+            if (!dateStr) return '-';
+            const p = String(dateStr).slice(0,10).split('-');
+            return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dateStr;
+        }
+        function money(val) {
+            return `$${Number(val || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+        }
+
+        function renderMovement(m) {
+            document.title = `Movimiento: ${m.item} | Birraverde`;
+            document.getElementById('loader').style.display  = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            const isBanco = m.type === 'Banco';
+            const badge = document.getElementById('movBadge');
+            badge.textContent = m.type || 'Libro';
+            badge.className   = `details-badge ${isBanco ? 'badge-banco' : 'badge-libro'}`;
+
+            document.getElementById('movTitle').textContent = m.item;
+            document.getElementById('movIdEl').textContent  = `ID del movimiento: ${m.id}`;
+
+            const income  = Number(m.income  || 0);
+            const expense = Number(m.expense || 0);
+            const net     = income - expense;
+
+            const incEl = document.getElementById('movIncome');
+            incEl.textContent = money(income);
+            incEl.className   = `balance-box-value ${income === 0 ? 'amount-zero' : 'amount-income'}`;
+
+            const expEl = document.getElementById('movExpense');
+            expEl.textContent = money(expense);
+            expEl.className   = `balance-box-value ${expense === 0 ? 'amount-zero' : 'amount-expense'}`;
+
+            const netEl = document.getElementById('movNet');
+            netEl.textContent = money(net);
+            netEl.className   = `balance-box-value ${net > 0 ? 'amount-income' : net < 0 ? 'amount-expense' : 'amount-zero'}`;
+
+            document.getElementById('movGrid').innerHTML = `
+                <div class="details-item">
+                    <span class="details-item-label">📅 Fecha del Movimiento</span>
+                    <span class="details-item-value">${fmt(m.date)}</span>
+                </div>
+                <div class="details-item">
+                    <span class="details-item-label">🏷️ Tipo de Registro</span>
+                    <span class="details-item-value">${m.type || 'Libro'}</span>
+                </div>
+                <div class="details-item">
+                    <span class="details-item-label">🔖 Concepto (Item)</span>
+                    <span class="details-item-value">${m.item}</span>
+                </div>
+                <div class="details-item">
+                    <span class="details-item-label">📋 Registrado el</span>
+                    <span class="details-item-value">${m.createdAt ? fmt(String(m.createdAt).slice(0,10)) : '-'}</span>
+                </div>
+            `;
+
+            if (m.description && m.description.trim()) {
+                document.getElementById('notesBox').style.display = 'block';
+                document.getElementById('movNotes').textContent    = m.description;
+            }
+        }
+    });
+    </script>
+</body>
+</html>

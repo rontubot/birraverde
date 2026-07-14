@@ -16,6 +16,7 @@ export default defineConfig({
         resetPassword: resolve(__dirname, 'reset-password.html'),
         reunionInterna: resolve(__dirname, 'reunion-interna/index.html'),
         session: resolve(__dirname, 'session.html'),
+        movimiento: resolve(__dirname, 'movimiento/index.html'),
       },
     },
   },

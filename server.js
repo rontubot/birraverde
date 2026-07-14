@@ -1724,6 +1724,25 @@ app.get('/api/accounting', authenticateToken, requireRole(['admin', 'contabilida
   }
 });
 
+app.get('/api/accounting/:id', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isPostgres) {
+      const result = await pgPool.query('SELECT * FROM accounting WHERE id = $1', [id]);
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Movimiento no encontrado.' });
+      const m = result.rows[0];
+      return res.json({ ...m, type: m.type || 'Libro' });
+    } else {
+      const m = accounting.find(x => x.id === id);
+      if (!m) return res.status(404).json({ error: 'Movimiento no encontrado.' });
+      return res.json({ ...m, type: m.type || 'Libro' });
+    }
+  } catch (err) {
+    console.error('Error fetching accounting movement:', err);
+    res.status(500).json({ error: 'Error al obtener movimiento contable.' });
+  }
+});
+
 app.post('/api/accounting', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
   try {
     const { item, description, income, expense, date, type } = req.body;
