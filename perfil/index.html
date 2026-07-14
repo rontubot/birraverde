@@ -356,6 +356,19 @@
             .session-card {
                 padding: 1.25rem !important;
             }
+            .modal {
+                padding: 0.75rem !important;
+            }
+            .modal-content {
+                padding: 1.5rem !important;
+                border-radius: 12px !important;
+            }
+            #trashBinModal .modal-content {
+                max-height: 95vh !important;
+                padding: 1.25rem !important;
+                width: 100% !important;
+                margin: 0 !important;
+            }
         }
         
         /* Modal Styles */
@@ -375,6 +388,9 @@
         }
         .modal.active {
             display: flex;
+        }
+        #deleteConfirmModal, #restoreConfirmModal {
+            z-index: 1200;
         }
         .modal-content {
             background: var(--bg-card);
