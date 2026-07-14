@@ -1681,9 +1681,9 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
     const excelData = filtered.map(m => ({
       'Item': m.item,
       'Descripción': m.description || '',
+      'Fecha': m.date.split('-').reverse().join('/'), // DD/MM/YYYY
       'Ingreso': Number(m.income || 0),
-      'Egreso': Number(m.expense || 0),
-      'Fecha': m.date.split('-').reverse().join('/') // DD/MM/YYYY
+      'Egreso': Number(m.expense || 0)
     }));
     
     // Add summary calculations
@@ -1692,22 +1692,22 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
     const balance = totalIncome - totalExpense;
     
     // Separator row
-    excelData.push({ 'Item': '', 'Descripción': '', 'Ingreso': '', 'Egreso': '', 'Fecha': '' });
+    excelData.push({ 'Item': '', 'Descripción': '', 'Fecha': '', 'Ingreso': '', 'Egreso': '' });
     
     excelData.push({
       'Item': 'TOTALES',
       'Descripción': 'Total acumulado',
+      'Fecha': '',
       'Ingreso': totalIncome,
-      'Egreso': totalExpense,
-      'Fecha': ''
+      'Egreso': totalExpense
     });
     
     excelData.push({
       'Item': 'BALANCE NETO',
       'Descripción': 'Ingresos - Egresos',
+      'Fecha': '',
       'Ingreso': balance,
-      'Egreso': '',
-      'Fecha': ''
+      'Egreso': ''
     });
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
