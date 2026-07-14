@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -773,7 +773,7 @@
                                         <h4 id="summaryTotalBalance" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #fff;">$0.00</h4>
                                     </div>
                                     <div id="summaryAvailableBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Dinero Disponible (Banco)</span>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Dinero Disponible (Transferencia)</span>
                                         <h4 id="summaryAvailableBalance" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #fff;">$0.00</h4>
                                     </div>
                                 </div>
@@ -1837,7 +1837,7 @@
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
-                            body: JSON.stringify({ item, description, income, expense, date, type: 'Banco' })
+                            body: JSON.stringify({ item, description, income, expense, date, type: 'Transferencia' })
                         });
                         
                         const data = await response.json();
@@ -1982,7 +1982,7 @@
                 existingGrid.innerHTML = recents.map(m => {
                     const income  = Number(m.income  || 0);
                     const expense = Number(m.expense || 0);
-                    const isBanco = m.type === 'Banco';
+                    const isBanco = m.type === 'Transferencia';
                     return `
                     <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:12px;padding:0.85rem 1.1rem;display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;">
                         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.15rem;">
@@ -2053,8 +2053,8 @@
                     }
                 }
 
-                // Calculate Dinero Disponible (only type === 'Banco' across all-time)
-                const bancoMovements = allAccountingCached.filter(m => m.type === 'Banco');
+                // Calculate Dinero Disponible (only type === 'Transferencia' across all-time)
+                const bancoMovements = allAccountingCached.filter(m => m.type === 'Transferencia');
                 const totalBancoIncome = bancoMovements.reduce((acc, curr) => acc + Number(curr.income || 0), 0);
                 const totalBancoExpense = bancoMovements.reduce((acc, curr) => acc + Number(curr.expense || 0), 0);
                 const availableBalance = totalBancoIncome - totalBancoExpense;
@@ -2124,7 +2124,7 @@
                 bookGrid.innerHTML = filtered.map(m => {
                     const income  = Number(m.income  || 0);
                     const expense = Number(m.expense || 0);
-                    const isBanco = m.type === 'Banco';
+                    const isBanco = m.type === 'Transferencia';
                     return `
                     <div style="background:rgba(255,255,255,0.03);border:1px solid var(--glass-border);border-radius:12px;padding:0.85rem 1.1rem;display:flex;flex-wrap:wrap;align-items:center;gap:0.75rem;">
                         <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:0.15rem;">
@@ -2300,7 +2300,7 @@
                                 <td data-label="Fecha">${formatDateStr(m.date)}</td>
                                 <td data-label="Eliminado el">${m.deleted_at ? formatDateStr(m.deleted_at.slice(0, 10)) : '-'}</td>
                                 <td data-label="Item"><strong>${m.item}</strong></td>
-                                <td data-label="Tipo"><span class="role-badge ${m.type === 'Banco' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
+                                <td data-label="Tipo"><span class="role-badge ${m.type === 'Transferencia' ? 'role-worker' : 'role-client'}" style="font-size:0.75rem; padding: 0.15rem 0.5rem;">${m.type || 'Libro'}</span></td>
                                 <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                                 <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                                 <td data-label="Acción" style="text-align: center;">
