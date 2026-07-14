@@ -649,7 +649,7 @@
                         <!-- Sub Tab 2: Invoice Creation Form -->
                         <div id="acc-sub-invoice" style="display: none;">
                             <form id="invoiceForm" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
-                                <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; color: var(--primary);">Crear Factura (Banco)</h3>
+                                <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; color: var(--primary);">Crear Factura (Libro)</h3>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
                                     <div>
                                         <label for="invItem" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Item / Concepto de Factura</label>
@@ -734,22 +734,26 @@
                                 </table>
                                 
                                 <!-- Summary Cards -->
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
                                     <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Ingresos Mensuales</span>
-                                        <h4 id="summaryTotalIncome" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #10b981;">$0.00</h4>
+                                        <h4 id="summaryTotalIncome" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #10b981;">$0.00</h4>
                                     </div>
                                     <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Egresos Mensuales</span>
-                                        <h4 id="summaryTotalExpense" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #ff4444;">$0.00</h4>
+                                        <h4 id="summaryTotalExpense" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #ff4444;">$0.00</h4>
                                     </div>
                                     <div id="summaryBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Balance Mensual</span>
-                                        <h4 id="summaryBalance" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #fff;">$0.00</h4>
+                                        <h4 id="summaryBalance" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #fff;">$0.00</h4>
                                     </div>
                                     <div id="summaryTotalBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
                                         <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Balance Total (Histórico)</span>
-                                        <h4 id="summaryTotalBalance" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #fff;">$0.00</h4>
+                                        <h4 id="summaryTotalBalance" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #fff;">$0.00</h4>
+                                    </div>
+                                    <div id="summaryAvailableBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Dinero Disponible (Banco)</span>
+                                        <h4 id="summaryAvailableBalance" style="margin: 0.25rem 0 0 0; font-size: 1.35rem; color: #fff;">$0.00</h4>
                                     </div>
                                 </div>
                             </div>
@@ -1812,7 +1816,7 @@
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
-                            body: JSON.stringify({ item, description, income, expense, date })
+                            body: JSON.stringify({ item, description, income, expense, date, type: 'Banco' })
                         });
                         
                         const data = await response.json();
@@ -1859,12 +1863,12 @@
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
                             },
-                            body: JSON.stringify({ item, description, income, expense, date, type: 'Banco' })
+                            body: JSON.stringify({ item, description, income, expense, date, type: 'Libro' })
                         });
                         
                         const data = await response.json();
                         if (response.ok) {
-                            alert('✅ Factura registrada con éxito (Banco).');
+                            alert('✅ Factura registrada con éxito (Libro).');
                             invoiceForm.reset();
                             if (invDateInput) {
                                 invDateInput.value = new Date().toISOString().split('T')[0];
@@ -2015,6 +2019,34 @@
                         totalBalanceCard.style.background = 'rgba(255,255,255,0.03)';
                         totalBalanceCard.style.borderColor = 'var(--glass-border)';
                         totalBalanceEl.style.color = '#fff';
+                    }
+                }
+
+                // Calculate Dinero Disponible (only type === 'Banco' across all-time)
+                const bancoMovements = allAccountingCached.filter(m => m.type === 'Banco');
+                const totalBancoIncome = bancoMovements.reduce((acc, curr) => acc + Number(curr.income || 0), 0);
+                const totalBancoExpense = bancoMovements.reduce((acc, curr) => acc + Number(curr.expense || 0), 0);
+                const availableBalance = totalBancoIncome - totalBancoExpense;
+
+                const availableBalanceEl = document.getElementById('summaryAvailableBalance');
+                if (availableBalanceEl) {
+                    availableBalanceEl.innerText = `$${availableBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+                }
+
+                const availableBalanceCard = document.getElementById('summaryAvailableBalanceCard');
+                if (availableBalanceCard && availableBalanceEl) {
+                    if (availableBalance > 0) {
+                        availableBalanceCard.style.background = 'rgba(16, 185, 129, 0.15)';
+                        availableBalanceCard.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        availableBalanceEl.style.color = '#10b981';
+                    } else if (availableBalance < 0) {
+                        availableBalanceCard.style.background = 'rgba(239, 68, 68, 0.15)';
+                        availableBalanceCard.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        availableBalanceEl.style.color = '#ff4444';
+                    } else {
+                        availableBalanceCard.style.background = 'rgba(255,255,255,0.03)';
+                        availableBalanceCard.style.borderColor = 'var(--glass-border)';
+                        availableBalanceEl.style.color = '#fff';
                     }
                 }
 
