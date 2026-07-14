@@ -230,6 +230,8 @@ const initDatabase = async () => {
         income NUMERIC DEFAULT 0,
         expense NUMERIC DEFAULT 0,
         date VARCHAR(10) NOT NULL,
+        deleted BOOLEAN DEFAULT FALSE,
+        deleted_at TIMESTAMP NULL,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -251,6 +253,8 @@ const initDatabase = async () => {
       await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS "invitedUsers" JSONB');
       await pgPool.query('ALTER TABLE meetings ADD COLUMN IF NOT EXISTS files JSONB');
       await pgPool.query('ALTER TABLE accounting ADD COLUMN IF NOT EXISTS type VARCHAR(50) DEFAULT \'Libro\'');
+      await pgPool.query('ALTER TABLE accounting ADD COLUMN IF NOT EXISTS deleted BOOLEAN DEFAULT FALSE');
+      await pgPool.query('ALTER TABLE accounting ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP NULL');
       console.log('✅ PostgreSQL schema migrations verified/applied.');
     } catch (migErr) {
       console.error('⚠️ Warning: Error running schema migrations:', migErr.message);
