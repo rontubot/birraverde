@@ -730,16 +730,20 @@
                                 <!-- Summary Cards -->
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
                                     <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Ingresos</span>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Ingresos Mensuales</span>
                                         <h4 id="summaryTotalIncome" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #10b981;">$0.00</h4>
                                     </div>
                                     <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Egresos</span>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Egresos Mensuales</span>
                                         <h4 id="summaryTotalExpense" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #ff4444;">$0.00</h4>
                                     </div>
                                     <div id="summaryBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
-                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Balance Neto</span>
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Balance Mensual</span>
                                         <h4 id="summaryBalance" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #fff;">$0.00</h4>
+                                    </div>
+                                    <div id="summaryTotalBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Balance Total (Histórico)</span>
+                                        <h4 id="summaryTotalBalance" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #fff;">$0.00</h4>
                                     </div>
                                 </div>
                             </div>
@@ -1976,6 +1980,33 @@
                 if (!tbody) return;
                 if (!filterMonthSelect || !filterYearSelect) return;
                 
+                // Calculate all-time totals first so they are always visible
+                const totalAllTimeIncome = allAccountingCached.reduce((acc, curr) => acc + Number(curr.income || 0), 0);
+                const totalAllTimeExpense = allAccountingCached.reduce((acc, curr) => acc + Number(curr.expense || 0), 0);
+                const totalBalance = totalAllTimeIncome - totalAllTimeExpense;
+                
+                const totalBalanceEl = document.getElementById('summaryTotalBalance');
+                if (totalBalanceEl) {
+                    totalBalanceEl.innerText = `$${totalBalance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+                }
+                
+                const totalBalanceCard = document.getElementById('summaryTotalBalanceCard');
+                if (totalBalanceCard && totalBalanceEl) {
+                    if (totalBalance > 0) {
+                        totalBalanceCard.style.background = 'rgba(16, 185, 129, 0.15)';
+                        totalBalanceCard.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        totalBalanceEl.style.color = '#10b981';
+                    } else if (totalBalance < 0) {
+                        totalBalanceCard.style.background = 'rgba(239, 68, 68, 0.15)';
+                        totalBalanceCard.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        totalBalanceEl.style.color = '#ff4444';
+                    } else {
+                        totalBalanceCard.style.background = 'rgba(255,255,255,0.03)';
+                        totalBalanceCard.style.borderColor = 'var(--glass-border)';
+                        totalBalanceEl.style.color = '#fff';
+                    }
+                }
+
                 const month = filterMonthSelect.value;
                 const year = filterYearSelect.value;
                 
