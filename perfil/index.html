@@ -73,6 +73,17 @@
             background: var(--primary);
             color: #000;
         }
+        #navUploadBtn {
+            background: rgba(0, 255, 65, 0.08);
+            border: 1px dashed rgba(0, 255, 65, 0.3);
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+        #navUploadBtn:hover, #navUploadBtn.active {
+            background: var(--primary);
+            color: #000;
+            border: 1px solid var(--primary);
+        }
         .tab-panel {
             display: none;
             animation: fadeIn 0.4s ease-out;
@@ -446,12 +457,12 @@
                     </div>
 
                     <div class="nav-menu">
+                        <button class="nav-item" data-target="tab-upload" id="navUploadBtn" style="display: none;">📁+ Subir Contenido</button>
                         <button class="nav-item active" data-target="tab-bookings" id="navBookingsBtn">Mis Reservas</button>
                         <button class="nav-item" data-target="tab-all-bookings" id="navAllBookingsBtn" style="display: none;">Reservas de Sala</button>
                         <button class="nav-item" data-target="tab-internal-meetings" id="navInternalBookingsBtn" style="display: none;">Reuniones Internas</button>
                         <button class="nav-item" data-target="tab-bands" id="navBandsBtn" style="display: none;">Bandas</button>
                         <button class="nav-item" data-target="tab-users" id="navUsersBtn" style="display: none;">Gestión de Personal</button>
-                        <button class="nav-item" data-target="tab-upload" id="navUploadBtn" style="display: none;">Subir Contenido</button>
                         <button class="nav-item" data-target="tab-account">Mi Cuenta</button>
                     </div>
                 </aside>
