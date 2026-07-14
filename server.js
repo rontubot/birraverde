@@ -1724,25 +1724,6 @@ app.get('/api/accounting', authenticateToken, requireRole(['admin', 'contabilida
   }
 });
 
-app.get('/api/accounting/:id', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    if (isPostgres) {
-      const result = await pgPool.query('SELECT * FROM accounting WHERE id = $1', [id]);
-      if (result.rowCount === 0) return res.status(404).json({ error: 'Movimiento no encontrado.' });
-      const m = result.rows[0];
-      return res.json({ ...m, type: m.type || 'Libro' });
-    } else {
-      const m = accounting.find(x => x.id === id);
-      if (!m) return res.status(404).json({ error: 'Movimiento no encontrado.' });
-      return res.json({ ...m, type: m.type || 'Libro' });
-    }
-  } catch (err) {
-    console.error('Error fetching accounting movement:', err);
-    res.status(500).json({ error: 'Error al obtener movimiento contable.' });
-  }
-});
-
 app.post('/api/accounting', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
   try {
     const { item, description, income, expense, date, type } = req.body;
@@ -1839,17 +1820,6 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
   }
 });
 
-app.delete('/api/accounting/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
-  try {
-    const { id } = req.params;
-    await dbSoftDeleteAccounting(id);
-    res.json({ success: true, message: 'Movimiento enviado a la papelera (durará 15 días).' });
-  } catch (err) {
-    console.error('Error deleting accounting movement:', err);
-    res.status(500).json({ error: 'Error al eliminar el movimiento contable.' });
-  }
-});
-
 app.get('/api/accounting/trash', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const trash = await dbGetAccountingTrash();
@@ -1868,6 +1838,36 @@ app.post('/api/accounting/restore/:id', authenticateToken, requireRole(['admin']
   } catch (err) {
     console.error('Error restoring accounting movement:', err);
     res.status(500).json({ error: 'Error al restaurar el movimiento contable.' });
+  }
+});
+
+app.get('/api/accounting/:id', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isPostgres) {
+      const result = await pgPool.query('SELECT * FROM accounting WHERE id = $1', [id]);
+      if (result.rowCount === 0) return res.status(404).json({ error: 'Movimiento no encontrado.' });
+      const m = result.rows[0];
+      return res.json({ ...m, type: m.type || 'Libro' });
+    } else {
+      const m = accounting.find(x => x.id === id);
+      if (!m) return res.status(404).json({ error: 'Movimiento no encontrado.' });
+      return res.json({ ...m, type: m.type || 'Libro' });
+    }
+  } catch (err) {
+    console.error('Error fetching accounting movement:', err);
+    res.status(500).json({ error: 'Error al obtener movimiento contable.' });
+  }
+});
+
+app.delete('/api/accounting/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    await dbSoftDeleteAccounting(id);
+    res.json({ success: true, message: 'Movimiento enviado a la papelera (durará 15 días).' });
+  } catch (err) {
+    console.error('Error deleting accounting movement:', err);
+    res.status(500).json({ error: 'Error al eliminar el movimiento contable.' });
   }
 });
 
