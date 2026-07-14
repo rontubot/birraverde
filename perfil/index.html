@@ -1950,7 +1950,7 @@
                         <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         ${currentUser.role === 'admin' ? `
                         <td data-label="Acciones">
-                            <button class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
+                            <button type="button" class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
                         </td>
                         ` : ''}
                     </tr>
@@ -1959,7 +1959,11 @@
                 // Hook up delete buttons
                 if (currentUser.role === 'admin') {
                     tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
-                        btn.onclick = async () => {
+                        btn.onclick = async (e) => {
+                            if (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
                             const id = btn.getAttribute('data-id');
                             if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este registro contable?')) {
                                 await deleteAccountingEntry(id);
@@ -2052,7 +2056,7 @@
                         <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         ${currentUser.role === 'admin' ? `
                         <td data-label="Acciones">
-                            <button class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
+                            <button type="button" class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
                         </td>
                         ` : ''}
                     </tr>
@@ -2061,7 +2065,11 @@
                 // Hook up delete buttons
                 if (currentUser.role === 'admin') {
                     tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
-                        btn.onclick = async () => {
+                        btn.onclick = async (e) => {
+                            if (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                            }
                             const id = btn.getAttribute('data-id');
                             if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este registro contable?')) {
                                 await deleteAccountingEntry(id);
