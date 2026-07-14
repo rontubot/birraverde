@@ -107,6 +107,7 @@
         .role-client { background: rgba(0, 255, 65, 0.1); color: var(--primary); border: 1px solid rgba(0, 255, 65, 0.2); }
         .role-worker { background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2); }
         .role-admin { background: rgba(239, 68, 68, 0.1); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .role-contabilidad { background: rgba(139, 92, 246, 0.1); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.2); }
 
         .booking-table {
             width: 100%;
@@ -463,6 +464,7 @@
                         <button class="nav-item" data-target="tab-internal-meetings" id="navInternalBookingsBtn" style="display: none;">Reuniones Internas</button>
                         <button class="nav-item" data-target="tab-bands" id="navBandsBtn" style="display: none;">Bandas</button>
                         <button class="nav-item" data-target="tab-users" id="navUsersBtn" style="display: none;">Gestión de Personal</button>
+                        <button class="nav-item" data-target="tab-accounting" id="navAccountingBtn" style="display: none;">Contabilidad</button>
                         <button class="nav-item" data-target="tab-account">Mi Cuenta</button>
                     </div>
                 </aside>
@@ -580,6 +582,141 @@
                         </div>
                     </div>
 
+                    <!-- Accounting Panel (Contabilidad only) -->
+                    <div id="tab-accounting" class="tab-panel">
+                        <h2 style="margin: 0; font-size: 1.75rem; margin-bottom: 1.5rem;">Gestión de Contabilidad</h2>
+                        
+                        <!-- Sub Tabs Navigation -->
+                        <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;">
+                            <button id="btnSubTabEntries" class="btn btn-primary" style="padding: 0.5rem 1.2rem; font-size: 0.85rem; justify-content: center;">📝 Ingresos / Egresos</button>
+                            <button id="btnSubTabBook" class="btn btn-outline" style="padding: 0.5rem 1.2rem; font-size: 0.85rem; justify-content: center;">📖 Libro Diario</button>
+                        </div>
+                        
+                        <!-- Sub Tab 1: Form & Recents -->
+                        <div id="acc-sub-entries">
+                            <form id="accountingForm" style="background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem;">
+                                <h3 style="margin-top: 0; margin-bottom: 1.5rem; font-size: 1.25rem; color: var(--primary);">Registrar Movimiento</h3>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                    <div>
+                                        <label for="accItem" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Item / Concepto</label>
+                                        <input type="text" id="accItem" required placeholder="Ej: Pago de alquiler, Venta de entradas" style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                    </div>
+                                    <div>
+                                        <label for="accDate" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Fecha</label>
+                                        <input type="date" id="accDate" required style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="accDesc" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Descripción</label>
+                                    <textarea id="accDesc" rows="3" placeholder="Detalles adicionales del movimiento..." style="width: 100%; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical; outline: none;"></textarea>
+                                </div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                    <div>
+                                        <label for="accIncome" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Ingreso (Monto)</label>
+                                        <input type="number" id="accIncome" min="0" step="0.01" value="0" style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                    </div>
+                                    <div>
+                                        <label for="accExpense" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Egreso (Monto)</label>
+                                        <input type="number" id="accExpense" min="0" step="0.01" value="0" style="width: 100%; padding: 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 8px; color: #fff; font-family: inherit; outline: none;">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">Guardar Movimiento</button>
+                            </form>
+                            
+                            <h3 style="font-size: 1.25rem; margin-bottom: 1rem;">Últimos Movimientos Registrados</h3>
+                            <div style="overflow-x: auto;">
+                                <table class="booking-table" style="width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Item</th>
+                                            <th>Descripción</th>
+                                            <th style="color: #10b981;">Ingreso</th>
+                                            <th style="color: #ff4444;">Egreso</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="accountingRecentTableBody">
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; color: var(--text-muted);">Cargando movimientos...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Sub Tab 2: Monthly Ledger (Libro Diario) -->
+                        <div id="acc-sub-book" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: 12px;">
+                                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                                    <div>
+                                        <label for="filterMonth" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Filtrar por Mes</label>
+                                        <select id="filterMonth" class="form-select" style="min-width: 140px; padding: 0.6rem;">
+                                            <option value="1">Enero</option>
+                                            <option value="2">Febrero</option>
+                                            <option value="3">Marzo</option>
+                                            <option value="4">Abril</option>
+                                            <option value="5">Mayo</option>
+                                            <option value="6">Junio</option>
+                                            <option value="7">Julio</option>
+                                            <option value="8">Agosto</option>
+                                            <option value="9">Septiembre</option>
+                                            <option value="10">Octubre</option>
+                                            <option value="11">Noviembre</option>
+                                            <option value="12">Diciembre</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="filterYear" style="display: block; margin-bottom: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">Año</label>
+                                        <select id="filterYear" class="form-select" style="min-width: 100px; padding: 0.6rem;">
+                                            <option value="2024">2024</option>
+                                            <option value="2025">2025</option>
+                                            <option value="2026" selected>2026</option>
+                                            <option value="2027">2027</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button id="btnDownloadExcel" class="btn btn-primary" style="padding: 0.6rem 1.2rem; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.4rem; justify-content: center;">
+                                    📊 Descargar Excel
+                                </button>
+                            </div>
+                            
+                            <div style="overflow-x: auto; background: rgba(0,0,0,0.1); border-radius: 12px; border: 1px solid var(--glass-border); padding: 1rem;">
+                                <table class="booking-table" style="width: 100%; margin-top: 0;">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Item</th>
+                                            <th>Descripción</th>
+                                            <th style="color: #10b981;">Ingreso</th>
+                                            <th style="color: #ff4444;">Egreso</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="accountingBookTableBody">
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; color: var(--text-muted);">Selecciona un mes y año para ver los registros.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                
+                                <!-- Summary Cards -->
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+                                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Ingresos</span>
+                                        <h4 id="summaryTotalIncome" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #10b981;">$0.00</h4>
+                                    </div>
+                                    <div style="background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Egresos</span>
+                                        <h4 id="summaryTotalExpense" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #ff4444;">$0.00</h4>
+                                    </div>
+                                    <div id="summaryBalanceCard" style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); padding: 1rem; border-radius: 8px; text-align: center;">
+                                        <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Balance Neto</span>
+                                        <h4 id="summaryBalance" style="margin: 0.25rem 0 0 0; font-size: 1.5rem; color: #fff;">$0.00</h4>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Account Settings Panel -->
                     <div id="tab-account" class="tab-panel">
                         <h2 style="margin-bottom: 1.5rem; font-size: 1.75rem;">Detalles de mi Cuenta</h2>
@@ -629,6 +766,7 @@
             let allUsersCached = [];
             let allBandsCached = [];
             let selectedBandMembers = [];
+            let allAccountingCached = [];
 
             const formatDateStr = (dateStr) => {
                 if (!dateStr) return '';
@@ -644,8 +782,8 @@
                 document.getElementById('userAvatar').innerText = currentUser.name ? currentUser.name.charAt(0) : 'U';
                 
                 const roleBadge = document.getElementById('userRoleBadge');
-                roleBadge.innerText = currentUser.role === 'admin' ? 'Administrador' : (currentUser.role === 'worker' ? 'Trabajador' : 'Cliente');
-                roleBadge.className = 'role-badge ' + (currentUser.role === 'admin' ? 'role-admin' : (currentUser.role === 'worker' ? 'role-worker' : 'role-client'));
+                roleBadge.innerText = currentUser.role === 'admin' ? 'Administrador' : (currentUser.role === 'worker' ? 'Trabajador' : (currentUser.role === 'contabilidad' ? 'Contabilidad' : 'Cliente'));
+                roleBadge.className = 'role-badge ' + (currentUser.role === 'admin' ? 'role-admin' : (currentUser.role === 'worker' ? 'role-worker' : (currentUser.role === 'contabilidad' ? 'role-contabilidad' : 'role-client')));
 
                 // Configure account panel info
                 document.getElementById('accName').innerText = currentUser.name;
@@ -655,7 +793,7 @@
                 accRole.className = roleBadge.className;
 
                 // Adjust visible menu items based on role
-                if (currentUser.role === 'admin' || currentUser.role === 'worker') {
+                if (currentUser.role === 'admin' || currentUser.role === 'worker' || currentUser.role === 'contabilidad') {
                     document.getElementById('navAllBookingsBtn').style.display = 'block';
                     document.getElementById('navInternalBookingsBtn').style.display = 'block';
                     document.getElementById('navBookingsBtn').style.display = 'none'; // Workers/Admin don't need "My Bookings"
@@ -685,6 +823,10 @@
                         document.getElementById('navUsersBtn').style.display = 'block';
                     }
                     document.getElementById('navBandsBtn').style.display = 'block';
+                    
+                    if (currentUser.role === 'admin' || currentUser.role === 'contabilidad') {
+                        document.getElementById('navAccountingBtn').style.display = 'block';
+                    }
                 }
 
                 // Show Upload tab for any user (client, worker, admin) if they belong to a band with a Drive link
@@ -1112,7 +1254,7 @@
                                 <td data-label="Nombre"><strong>${u.name}${u.bandName ? ` (${u.bandName})` : ''}</strong></td>
                                 <td data-label="Email">${u.email}</td>
                                 <td data-label="Rol Actual">
-                                    <span class="role-badge ${u.role === 'admin' ? 'role-admin' : (u.role === 'worker' ? 'role-worker' : 'role-client')}">
+                                    <span class="role-badge ${u.role === 'admin' ? 'role-admin' : (u.role === 'worker' ? 'role-worker' : (u.role === 'contabilidad' ? 'role-contabilidad' : 'role-client'))}">
                                         ${u.role}
                                     </span>
                                 </td>
@@ -1121,6 +1263,7 @@
                                         <select class="form-select role-select" data-id="${u.id}">
                                             <option value="client" ${u.role === 'client' ? 'selected' : ''}>Cliente</option>
                                             <option value="worker" ${u.role === 'worker' ? 'selected' : ''}>Trabajador</option>
+                                            <option value="contabilidad" ${u.role === 'contabilidad' ? 'selected' : ''}>Contabilidad</option>
                                             <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Administrador</option>
                                         </select>
                                     `}
@@ -1576,12 +1719,238 @@
                 `).join('');
             };
 
+            // --- CONTABILIDAD LOGIC ---
+            const btnSubTabEntries = document.getElementById('btnSubTabEntries');
+            const btnSubTabBook = document.getElementById('btnSubTabBook');
+            const subTabEntries = document.getElementById('acc-sub-entries');
+            const subTabBook = document.getElementById('acc-sub-book');
+            
+            if (btnSubTabEntries && btnSubTabBook) {
+                btnSubTabEntries.onclick = () => {
+                    btnSubTabEntries.className = 'btn btn-primary';
+                    btnSubTabBook.className = 'btn btn-outline';
+                    subTabEntries.style.display = 'block';
+                    subTabBook.style.display = 'none';
+                };
+                
+                btnSubTabBook.onclick = () => {
+                    btnSubTabBook.className = 'btn btn-primary';
+                    btnSubTabEntries.className = 'btn btn-outline';
+                    subTabBook.style.display = 'block';
+                    subTabEntries.style.display = 'none';
+                    filterMonthlyBook();
+                };
+            }
+
+            const accountingForm = document.getElementById('accountingForm');
+            if (accountingForm) {
+                // Set default date to today's date in YYYY-MM-DD
+                const accDateInput = document.getElementById('accDate');
+                if (accDateInput) {
+                    accDateInput.value = new Date().toISOString().split('T')[0];
+                }
+                
+                accountingForm.onsubmit = async (e) => {
+                    e.preventDefault();
+                    const item = document.getElementById('accItem').value;
+                    const date = document.getElementById('accDate').value;
+                    const description = document.getElementById('accDesc').value;
+                    const income = parseFloat(document.getElementById('accIncome').value || 0);
+                    const expense = parseFloat(document.getElementById('accExpense').value || 0);
+                    
+                    if (income <= 0 && expense <= 0) {
+                        alert('⚠️ El ingreso o el egreso debe ser mayor que 0.');
+                        return;
+                    }
+                    
+                    try {
+                        const response = await fetch('/api/accounting', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ item, description, income, expense, date })
+                        });
+                        
+                        const data = await response.json();
+                        if (response.ok) {
+                            alert('✅ Movimiento registrado con éxito.');
+                            accountingForm.reset();
+                            if (accDateInput) {
+                                accDateInput.value = new Date().toISOString().split('T')[0];
+                            }
+                            fetchAccounting();
+                        } else {
+                            alert(`❌ Error: ${data.error || 'Ocurrió un problema.'}`);
+                        }
+                    } catch (err) {
+                        alert('❌ Error de conexión al registrar movimiento.');
+                    }
+                };
+            }
+
+            const fetchAccounting = async () => {
+                try {
+                    const response = await fetch('/api/accounting', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (response.ok) {
+                        allAccountingCached = await response.json();
+                        renderAccountingRecentTable();
+                        filterMonthlyBook();
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            };
+
+            const renderAccountingRecentTable = () => {
+                const tbody = document.getElementById('accountingRecentTableBody');
+                if (!tbody) return;
+                
+                const recents = allAccountingCached.slice(0, 10);
+                if (recents.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay movimientos registrados.</td></tr>`;
+                    return;
+                }
+                
+                tbody.innerHTML = recents.map(m => `
+                    <tr>
+                        <td data-label="Fecha">${formatDateStr(m.date)}</td>
+                        <td data-label="Item"><strong>${m.item}</strong></td>
+                        <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
+                        <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                        <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                `).join('');
+            };
+
+            const filterMonthSelect = document.getElementById('filterMonth');
+            const filterYearSelect = document.getElementById('filterYear');
+            
+            if (filterMonthSelect && filterYearSelect) {
+                const now = new Date();
+                filterMonthSelect.value = now.getMonth() + 1;
+                filterYearSelect.value = now.getFullYear();
+                
+                const triggerFilter = () => filterMonthlyBook();
+                filterMonthSelect.onchange = triggerFilter;
+                filterYearSelect.onchange = triggerFilter;
+            }
+            
+            const filterMonthlyBook = () => {
+                const tbody = document.getElementById('accountingBookTableBody');
+                if (!tbody) return;
+                if (!filterMonthSelect || !filterYearSelect) return;
+                
+                const month = filterMonthSelect.value;
+                const year = filterYearSelect.value;
+                
+                const filtered = allAccountingCached.filter(m => {
+                    const mYear = m.date.slice(0, 4);
+                    const mMonth = m.date.slice(5, 7);
+                    return mYear === year && mMonth === month.padStart(2, '0');
+                });
+                
+                filtered.sort((a, b) => a.date.localeCompare(b.date));
+                
+                if (filtered.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay registros contables en este período.</td></tr>`;
+                    document.getElementById('summaryTotalIncome').innerText = '$0,00';
+                    document.getElementById('summaryTotalExpense').innerText = '$0,00';
+                    document.getElementById('summaryBalance').innerText = '$0,00';
+                    const balanceCard = document.getElementById('summaryBalanceCard');
+                    if (balanceCard) {
+                        balanceCard.style.background = 'rgba(255,255,255,0.03)';
+                        balanceCard.style.borderColor = 'var(--glass-border)';
+                    }
+                    const balanceEl = document.getElementById('summaryBalance');
+                    if (balanceEl) {
+                        balanceEl.style.color = '#fff';
+                    }
+                    return;
+                }
+                
+                tbody.innerHTML = filtered.map(m => `
+                    <tr>
+                        <td data-label="Fecha">${formatDateStr(m.date)}</td>
+                        <td data-label="Item"><strong>${m.item}</strong></td>
+                        <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
+                        <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                        <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                `).join('');
+                
+                const totalIncome = filtered.reduce((acc, curr) => acc + Number(curr.income || 0), 0);
+                const totalExpense = filtered.reduce((acc, curr) => acc + Number(curr.expense || 0), 0);
+                const balance = totalIncome - totalExpense;
+                
+                document.getElementById('summaryTotalIncome').innerText = `$${totalIncome.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+                document.getElementById('summaryTotalExpense').innerText = `$${totalExpense.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+                
+                const balanceEl = document.getElementById('summaryBalance');
+                balanceEl.innerText = `$${balance.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`;
+                
+                const balanceCard = document.getElementById('summaryBalanceCard');
+                if (balanceCard) {
+                    if (balance > 0) {
+                        balanceCard.style.background = 'rgba(16, 185, 129, 0.15)';
+                        balanceCard.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                        balanceEl.style.color = '#10b981';
+                    } else if (balance < 0) {
+                        balanceCard.style.background = 'rgba(239, 68, 68, 0.15)';
+                        balanceCard.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                        balanceEl.style.color = '#ff4444';
+                    } else {
+                        balanceCard.style.background = 'rgba(255,255,255,0.03)';
+                        balanceCard.style.borderColor = 'var(--glass-border)';
+                        balanceEl.style.color = '#fff';
+                    }
+                }
+            };
+
+            const btnDownloadExcel = document.getElementById('btnDownloadExcel');
+            if (btnDownloadExcel) {
+                btnDownloadExcel.onclick = async () => {
+                    if (!filterMonthSelect || !filterYearSelect) return;
+                    const month = filterMonthSelect.value;
+                    const year = filterYearSelect.value;
+                    
+                    try {
+                        const response = await fetch(`/api/accounting/excel?month=${month}&year=${year}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            const downloadUrl = window.URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = downloadUrl;
+                            a.download = `libro_contable_${month.padStart(2, '0')}_${year}.xlsx`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            window.URL.revokeObjectURL(downloadUrl);
+                        } else {
+                            const errData = await response.json();
+                            alert(`❌ Error al descargar Excel: ${errData.error || 'Problema de servidor'}`);
+                        }
+                    } catch (err) {
+                        alert('❌ Error de conexión al descargar Excel.');
+                    }
+                };
+            }
+
             const loadDataBasedOnRole = () => {
-                if (currentUser.role === 'admin' || currentUser.role === 'worker') {
+                if (currentUser.role === 'admin' || currentUser.role === 'worker' || currentUser.role === 'contabilidad') {
                     fetchAllBookings();
                     fetchAllMeetings();
                     fetchBands();
                     fetchUsers();
+                    if (currentUser.role === 'admin' || currentUser.role === 'contabilidad') {
+                        fetchAccounting();
+                    }
                 } else {
                     fetchClientBookings();
                 }

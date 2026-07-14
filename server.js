@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import fs from 'fs';
+import XLSX from 'xlsx';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -109,6 +110,25 @@ const saveBands = () => {
   }
 };
 
+const ACCOUNTING_FILE = join(__dirname, 'accounting.json');
+let accounting = [];
+
+if (fs.existsSync(ACCOUNTING_FILE)) {
+  try {
+    accounting = JSON.parse(fs.readFileSync(ACCOUNTING_FILE, 'utf8'));
+  } catch (e) {
+    console.error('Error reading accounting file:', e);
+  }
+}
+
+const saveAccounting = () => {
+  try {
+    fs.writeFileSync(ACCOUNTING_FILE, JSON.stringify(accounting, null, 2));
+  } catch (e) {
+    console.error('Error saving accounting file:', e);
+  }
+};
+
 // --- CONFIGURACIÓN DE POSTGRESQL ---
 const isPostgres = !!process.env.DATABASE_URL;
 let pgPool = null;
@@ -197,6 +217,18 @@ const initDatabase = async () => {
         name VARCHAR(255) UNIQUE,
         "driveLink" TEXT,
         members JSONB,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pgPool.query(`
+      CREATE TABLE IF NOT EXISTS accounting (
+        id VARCHAR(100) PRIMARY KEY,
+        item VARCHAR(255) NOT NULL,
+        description TEXT,
+        income NUMERIC DEFAULT 0,
+        expense NUMERIC DEFAULT 0,
+        date VARCHAR(10) NOT NULL,
         "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -539,6 +571,31 @@ const dbDeleteBand = async (id) => {
 const dbGetUserBand = async (userId) => {
   const allBands = await dbGetBands();
   return allBands.find(b => (b.members || []).includes(userId)) || null;
+};
+
+const dbGetAccounting = async () => {
+  if (isPostgres) {
+    const res = await pgPool.query('SELECT * FROM accounting ORDER BY date DESC, "createdAt" DESC');
+    return res.rows;
+  }
+  return [...accounting].sort((a, b) => {
+    const cmp = b.date.localeCompare(a.date);
+    if (cmp !== 0) return cmp;
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+  });
+};
+
+const dbCreateAccounting = async (movement) => {
+  if (isPostgres) {
+    await pgPool.query(
+      `INSERT INTO accounting (id, item, description, income, expense, date) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [movement.id, movement.item, movement.description, movement.income || 0, movement.expense || 0, movement.date]
+    );
+  } else {
+    accounting.push(movement);
+    saveAccounting();
+  }
+  return movement;
 };
 
 // Middlewares de autenticación y autorización
@@ -991,7 +1048,7 @@ app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
 
 // --- RUTAS DE ADMINISTRACIÓN ---
 
-app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const allBookings = await dbGetBookings();
     const allBands = await dbGetBands();
@@ -1044,8 +1101,8 @@ app.get('/api/admin/bookings/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'Reserva no encontrada.' });
     }
     
-    // Proteger acceso: Solo admins, workers, o el cliente dueño de la reserva
-    if (req.user.role !== 'admin' && req.user.role !== 'worker' && booking.userId !== req.user.id && booking.email !== req.user.email) {
+    // Proteger acceso: Solo admins, workers, contabilidad o el cliente dueño de la reserva
+    if (req.user.role !== 'admin' && req.user.role !== 'worker' && req.user.role !== 'contabilidad' && booking.userId !== req.user.id && booking.email !== req.user.email) {
       return res.status(403).json({ error: 'Acceso denegado.' });
     }
     
@@ -1071,7 +1128,7 @@ app.get('/api/admin/bookings/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/admin/bookings/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.put('/api/admin/bookings/:id', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const { name, email, phone, people, duration, date, time, notes } = req.body;
     if (!name || !email || !phone || !people || !duration || !date || !time) {
@@ -1085,7 +1142,7 @@ app.put('/api/admin/bookings/:id', authenticateToken, requireRole(['admin', 'wor
   }
 });
 
-app.get('/api/admin/users', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.get('/api/admin/users', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const allUsers = await dbGetUsers();
     const allBands = await dbGetBands();
@@ -1138,11 +1195,11 @@ app.post('/api/admin/users/role', authenticateToken, requireRole(['admin']), asy
 
 // --- RUTAS DE REUNIONES INTERNAS ---
 
-app.get('/api/internal/users', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.get('/api/internal/users', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const allUsers = await dbGetUsers();
     const internalUsers = allUsers
-      .filter(u => u.role === 'admin' || u.role === 'worker')
+      .filter(u => u.role === 'admin' || u.role === 'worker' || u.role === 'contabilidad')
       .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
     res.json(internalUsers);
   } catch (err) {
@@ -1151,7 +1208,7 @@ app.get('/api/internal/users', authenticateToken, requireRole(['admin', 'worker'
   }
 });
 
-app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worker']), upload.array('files'), async (req, res) => {
+app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), upload.array('files'), async (req, res) => {
   try {
     const { subject, duration, date, time, notes } = req.body;
     let invitedUsersRaw = req.body.invitedUsers;
@@ -1335,7 +1392,7 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
   }
 });
 
-app.get('/api/admin/meetings', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.get('/api/admin/meetings', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const allMeetings = await dbGetMeetings();
     const allBands = await dbGetBands();
@@ -1411,7 +1468,7 @@ app.get('/api/admin/meetings/:id', authenticateToken, async (req, res) => {
     const isGuest = meeting.invitedUsers && meeting.invitedUsers.some(u => u.email === req.user.email);
     const isHost = meeting.hostEmail === req.user.email || meeting.hostId === req.user.id;
     
-    if (req.user.role !== 'admin' && req.user.role !== 'worker' && !isHost && !isGuest) {
+    if (req.user.role !== 'admin' && req.user.role !== 'worker' && req.user.role !== 'contabilidad' && !isHost && !isGuest) {
       return res.status(403).json({ error: 'Acceso denegado.' });
     }
     
@@ -1442,7 +1499,7 @@ app.get('/api/admin/meetings/:id', authenticateToken, async (req, res) => {
   }
 });
 
-app.put('/api/admin/meetings/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.put('/api/admin/meetings/:id', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const { subject, duration, date, time, notes, invitedUsers } = req.body;
     if (!subject || !duration || !date || !time) {
@@ -1458,7 +1515,7 @@ app.put('/api/admin/meetings/:id', authenticateToken, requireRole(['admin', 'wor
 
 // --- BANDAS CRUD ENDPOINTS ---
 
-app.get('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.get('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const allBands = await dbGetBands();
     const allUsers = await dbGetUsers();
@@ -1478,7 +1535,7 @@ app.get('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker']),
   }
 });
 
-app.get('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.get('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const band = await dbGetBandById(req.params.id);
     if (!band) {
@@ -1491,7 +1548,7 @@ app.get('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker
   }
 });
 
-app.post('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.post('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const { name, members, driveLink } = req.body;
     if (!name) {
@@ -1520,7 +1577,7 @@ app.post('/api/admin/bands', authenticateToken, requireRole(['admin', 'worker'])
   }
 });
 
-app.put('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.put('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const { name, members, driveLink } = req.body;
     if (!name) {
@@ -1551,7 +1608,7 @@ app.put('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker
   }
 });
 
-app.delete('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker']), async (req, res) => {
+app.delete('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'worker', 'contabilidad']), async (req, res) => {
   try {
     const band = await dbGetBandById(req.params.id);
     if (!band) {
@@ -1562,6 +1619,110 @@ app.delete('/api/admin/bands/:id', authenticateToken, requireRole(['admin', 'wor
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar banda.' });
+  }
+});
+
+// --- CONTABILIDAD ENDPOINTS ---
+
+app.get('/api/accounting', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
+  try {
+    const movements = await dbGetAccounting();
+    res.json(movements);
+  } catch (err) {
+    console.error('Error fetching accounting movements:', err);
+    res.status(500).json({ error: 'Error al obtener movimientos contables.' });
+  }
+});
+
+app.post('/api/accounting', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
+  try {
+    const { item, description, income, expense, date } = req.body;
+    if (!item || !date) {
+      return res.status(400).json({ error: 'El item y la fecha son obligatorios.' });
+    }
+    
+    const movement = {
+      id: 'acc-' + crypto.randomBytes(8).toString('hex'),
+      item,
+      description: description || '',
+      income: Number(income || 0),
+      expense: Number(expense || 0),
+      date, // YYYY-MM-DD
+      createdAt: new Date()
+    };
+    
+    await dbCreateAccounting(movement);
+    res.status(201).json({ success: true, message: 'Movimiento contable registrado con éxito.', movement });
+  } catch (err) {
+    console.error('Error creating accounting movement:', err);
+    res.status(500).json({ error: 'Error al registrar movimiento contable.' });
+  }
+});
+
+app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'contabilidad']), async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    if (!month || !year) {
+      return res.status(400).json({ error: 'Mes y año son requeridos.' });
+    }
+    
+    const allMovements = await dbGetAccounting();
+    // Filter movements by month and year
+    const filtered = allMovements.filter(m => {
+      const mYear = m.date.slice(0, 4);
+      const mMonth = m.date.slice(5, 7);
+      return mYear === year && mMonth === month.padStart(2, '0');
+    });
+    
+    // Sort chronological ascending (oldest first)
+    filtered.sort((a, b) => a.date.localeCompare(b.date));
+    
+    // Format the data for Excel sheet
+    const excelData = filtered.map(m => ({
+      'Item': m.item,
+      'Descripción': m.description || '',
+      'Ingreso': Number(m.income || 0),
+      'Egreso': Number(m.expense || 0),
+      'Fecha': m.date.split('-').reverse().join('/') // DD/MM/YYYY
+    }));
+    
+    // Add summary calculations
+    const totalIncome = filtered.reduce((acc, curr) => acc + Number(curr.income || 0), 0);
+    const totalExpense = filtered.reduce((acc, curr) => acc + Number(curr.expense || 0), 0);
+    const balance = totalIncome - totalExpense;
+    
+    // Separator row
+    excelData.push({ 'Item': '', 'Descripción': '', 'Ingreso': '', 'Egreso': '', 'Fecha': '' });
+    
+    excelData.push({
+      'Item': 'TOTALES',
+      'Descripción': 'Total acumulado',
+      'Ingreso': totalIncome,
+      'Egreso': totalExpense,
+      'Fecha': ''
+    });
+    
+    excelData.push({
+      'Item': 'BALANCE NETO',
+      'Descripción': 'Ingresos - Egresos',
+      'Ingreso': balance,
+      'Egreso': '',
+      'Fecha': ''
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Libro Diario');
+    
+    // Write buffer using xlsx
+    const buf = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    
+    res.setHeader('Content-Disposition', `attachment; filename="libro_contable_${month.padStart(2, '0')}_${year}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    console.error('Error generating Excel:', err);
+    res.status(500).json({ error: 'Error al generar libro Excel.' });
   }
 });
 
