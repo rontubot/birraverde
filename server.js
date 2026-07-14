@@ -1726,6 +1726,29 @@ app.get('/api/accounting/excel', authenticateToken, requireRole(['admin', 'conta
   }
 });
 
+app.delete('/api/accounting/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (isPostgres) {
+      const result = await pgPool.query('DELETE FROM accounting WHERE id = $1', [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Movimiento no encontrado.' });
+      }
+    } else {
+      const idx = accounting.findIndex(m => m.id === id);
+      if (idx === -1) {
+        return res.status(404).json({ error: 'Movimiento no encontrado.' });
+      }
+      accounting.splice(idx, 1);
+      saveAccounting();
+    }
+    res.json({ success: true, message: 'Movimiento eliminado con éxito.' });
+  } catch (err) {
+    console.error('Error deleting accounting movement:', err);
+    res.status(500).json({ error: 'Error al eliminar el movimiento contable.' });
+  }
+});
+
 // --- GOOGLE DRIVE UPLOAD BRIDGE ---
 
 app.post('/api/upload-drive', authenticateToken, upload.single('file'), async (req, res) => {

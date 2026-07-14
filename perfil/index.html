@@ -1790,6 +1790,38 @@
                 };
             }
 
+            const deleteAccountingEntry = async (id) => {
+                try {
+                    const response = await fetch(`/api/accounting/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert('✅ Registro eliminado con éxito.');
+                        fetchAccounting();
+                    } else {
+                        alert(`❌ Error: ${data.error || 'No se pudo eliminar el registro.'}`);
+                    }
+                } catch (err) {
+                    alert('❌ Error de conexión al eliminar el registro.');
+                }
+            };
+
+            const adjustAccountingTableHeaders = () => {
+                const recentThead = document.querySelector('#acc-sub-entries thead tr');
+                const bookThead = document.querySelector('#acc-sub-book thead tr');
+                if (currentUser.role === 'admin') {
+                    if (recentThead && !recentThead.querySelector('.actions-col')) {
+                        recentThead.insertAdjacentHTML('beforeend', '<th class="actions-col">Acciones</th>');
+                    }
+                    if (bookThead && !bookThead.querySelector('.actions-col')) {
+                        bookThead.insertAdjacentHTML('beforeend', '<th class="actions-col">Acciones</th>');
+                    }
+                }
+            };
+
             const fetchAccounting = async () => {
                 try {
                     const response = await fetch('/api/accounting', {
@@ -1797,6 +1829,7 @@
                     });
                     if (response.ok) {
                         allAccountingCached = await response.json();
+                        adjustAccountingTableHeaders();
                         renderAccountingRecentTable();
                         filterMonthlyBook();
                     }
@@ -1811,7 +1844,7 @@
                 
                 const recents = allAccountingCached.slice(0, 10);
                 if (recents.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay movimientos registrados.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 6 : 5}" style="text-align: center; color: var(--text-muted);">No hay movimientos registrados.</td></tr>`;
                     return;
                 }
                 
@@ -1822,8 +1855,25 @@
                         <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
                         <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                        ${currentUser.role === 'admin' ? `
+                        <td data-label="Acciones">
+                            <button class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
+                        </td>
+                        ` : ''}
                     </tr>
                 `).join('');
+
+                // Hook up delete buttons
+                if (currentUser.role === 'admin') {
+                    tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
+                        btn.onclick = async () => {
+                            const id = btn.getAttribute('data-id');
+                            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este registro contable?')) {
+                                await deleteAccountingEntry(id);
+                            }
+                        };
+                    });
+                }
             };
 
             const filterMonthSelect = document.getElementById('filterMonth');
@@ -1856,7 +1906,7 @@
                 filtered.sort((a, b) => a.date.localeCompare(b.date));
                 
                 if (filtered.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No hay registros contables en este período.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 6 : 5}" style="text-align: center; color: var(--text-muted);">No hay registros contables en este período.</td></tr>`;
                     document.getElementById('summaryTotalIncome').innerText = '$0,00';
                     document.getElementById('summaryTotalExpense').innerText = '$0,00';
                     document.getElementById('summaryBalance').innerText = '$0,00';
@@ -1879,8 +1929,25 @@
                         <td data-label="Descripción" style="font-size: 0.85rem; color: var(--text-muted);">${m.description || '-'}</td>
                         <td data-label="Ingreso" style="color: #10b981; font-weight: bold;">$${Number(m.income || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
                         <td data-label="Egreso" style="color: #ff4444; font-weight: bold;">$${Number(m.expense || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                        ${currentUser.role === 'admin' ? `
+                        <td data-label="Acciones">
+                            <button class="btn btn-outline btn-delete-acc" data-id="${m.id}" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; border-color: #ff4444; color: #ff4444; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;">🗑️ Eliminar</button>
+                        </td>
+                        ` : ''}
                     </tr>
                 `).join('');
+
+                // Hook up delete buttons
+                if (currentUser.role === 'admin') {
+                    tbody.querySelectorAll('.btn-delete-acc').forEach(btn => {
+                        btn.onclick = async () => {
+                            const id = btn.getAttribute('data-id');
+                            if (confirm('⚠️ ¿Estás seguro de que deseas eliminar este registro contable?')) {
+                                await deleteAccountingEntry(id);
+                            }
+                        };
+                    });
+                }
                 
                 const totalIncome = filtered.reduce((acc, curr) => acc + Number(curr.income || 0), 0);
                 const totalExpense = filtered.reduce((acc, curr) => acc + Number(curr.expense || 0), 0);
