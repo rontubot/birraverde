@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -1959,17 +1959,9 @@
                 const container = document.getElementById('accountingRecentTableBody');
                 if (!container) return;
 
-                const recents = allAccountingCached.slice(0, 10);
-                if (recents.length === 0) {
-                    container.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No hay movimientos registrados.</td></tr>`;
-                    return;
-                }
-
-                // Render as cards instead of table rows
+                // Always get/create grid first so we can clear it immediately
                 const parent = container.closest('table') || container.parentElement;
                 const wrapper = parent.parentElement;
-
-                // Build card grid HTML and inject before the table
                 let existingGrid = wrapper.querySelector('.acc-cards-grid');
                 if (!existingGrid) {
                     existingGrid = document.createElement('div');
@@ -1977,6 +1969,14 @@
                     existingGrid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:0.75rem;margin-bottom:1.5rem;';
                     parent.parentNode.insertBefore(existingGrid, parent);
                     parent.style.display = 'none';
+                }
+                // Clear immediately — prevents ghost cards after deletion
+                existingGrid.innerHTML = '';
+
+                const recents = allAccountingCached.slice(0, 10);
+                if (recents.length === 0) {
+                    existingGrid.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;">No hay movimientos registrados.</div>`;
+                    return;
                 }
 
                 existingGrid.innerHTML = recents.map(m => {
@@ -2092,8 +2092,22 @@
                 
                 filtered.sort((a, b) => a.date.localeCompare(b.date));
                 
+                // Always get/create book grid first so we can clear it immediately
+                const bookTable = tbody.closest('table') || tbody.parentElement;
+                const bookWrapper = bookTable.parentElement;
+                let bookGrid = bookWrapper.querySelector('.acc-book-cards-grid');
+                if (!bookGrid) {
+                    bookGrid = document.createElement('div');
+                    bookGrid.className = 'acc-book-cards-grid';
+                    bookGrid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:0.75rem;margin-bottom:1.5rem;';
+                    bookTable.parentNode.insertBefore(bookGrid, bookTable);
+                    bookTable.style.display = 'none';
+                }
+                // Clear immediately — prevents ghost cards after deletion or filter change
+                bookGrid.innerHTML = '';
+
                 if (filtered.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${currentUser.role === 'admin' ? 7 : 6}" style="text-align: center; color: var(--text-muted);">No hay registros contables en este período.</td></tr>`;
+                    bookGrid.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;">No hay registros contables en este período.</div>`;
                     document.getElementById('summaryTotalIncome').innerText = '$0,00';
                     document.getElementById('summaryTotalExpense').innerText = '$0,00';
                     document.getElementById('summaryBalance').innerText = '$0,00';
@@ -2107,18 +2121,6 @@
                         balanceEl.style.color = '#fff';
                     }
                     return;
-                }
-                
-                // Render book movements as cards
-                const bookTable = tbody.closest('table') || tbody.parentElement;
-                const bookWrapper = bookTable.parentElement;
-                let bookGrid = bookWrapper.querySelector('.acc-book-cards-grid');
-                if (!bookGrid) {
-                    bookGrid = document.createElement('div');
-                    bookGrid.className = 'acc-book-cards-grid';
-                    bookGrid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:0.75rem;margin-bottom:1.5rem;';
-                    bookTable.parentNode.insertBefore(bookGrid, bookTable);
-                    bookTable.style.display = 'none';
                 }
 
                 bookGrid.innerHTML = filtered.map(m => {
