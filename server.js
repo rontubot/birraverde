@@ -8,6 +8,42 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import multer from 'multer';
 import pg from 'pg';
+import { Resend } from 'resend';
+
+// --- CONFIGURACIÓN DE RESEND ---
+const resendClient = process.env.SENDGRID_API_KEY
+  ? new Resend(process.env.SENDGRID_API_KEY)
+  : null;
+
+const FROM_EMAIL = 'Birraverde Studio <admin@birraverde.com>';
+const ADMIN_EMAIL = 'birraverdefilms@gmail.com';
+
+/**
+ * Helper centralizado para enviar correos vía Resend.
+ * @param {object} opts - { to, subject, html }
+ */
+const sendEmail = async ({ to, subject, html }) => {
+  if (!resendClient) {
+    console.warn('[EMAIL] RESEND_API_KEY no configurada. El correo NO fue enviado.');
+    console.log(`[EMAIL] (simulado) To: ${to} | Subject: ${subject}`);
+    return;
+  }
+  try {
+    const { data, error } = await resendClient.emails.send({
+      from: FROM_EMAIL,
+      to: Array.isArray(to) ? to : [to],
+      subject,
+      html
+    });
+    if (error) {
+      console.error(`[EMAIL] Error Resend al enviar a ${to}:`, error);
+    } else {
+      console.log(`[EMAIL] Correo enviado vía Resend a ${to}. ID: ${data?.id}`);
+    }
+  } catch (err) {
+    console.error(`[EMAIL] Excepción al enviar correo vía Resend a ${to}:`, err);
+  }
+};
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -879,23 +915,19 @@ app.post('/api/booking', async (req, res) => {
             <p style="margin: 5px 0;">Notas: ${notes || 'Ninguna'}</p>
           </div>`;
 
-        const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
-        
-        console.log(`[EMAIL] Dispatching booking email to Google Apps Script for ${email}...`);
-        const emailRes = await fetch(scriptURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            token: "BIRRAVERDE_2024_SECURE",
-            name, email, phone, people, duration, date, time, notes,
-            subject: 'Reserva Confirmada - Birraverde Studio',
-            html: createHtml(name, userDetails),
-            htmlAdmin: createHtml('Administrador', adminDetails),
-            textAdmin: `Nueva reserva de ${name} para el ${formattedDate}`
-          })
+        // Correo al cliente
+        await sendEmail({
+          to: email,
+          subject: 'Reserva Confirmada - Birraverde Studio',
+          html: createHtml(name, userDetails)
         });
-        const resText = await emailRes.text();
-        console.log(`[EMAIL] Google Apps Script response status: ${emailRes.status}. Body: ${resText}`);
+
+        // Correo de notificación al administrador
+        await sendEmail({
+          to: ADMIN_EMAIL,
+          subject: `Nueva Reserva: ${name} — ${formattedDate}`,
+          html: createHtml('Administrador', adminDetails)
+        });
       } catch (err) {
         console.error('Error en proceso de email:', err);
       }
@@ -951,30 +983,12 @@ app.post('/api/auth/forgot-password', async (req, res) => {
         </div>
       </div>`;
 
-    const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
-    
-    console.log(`[EMAIL] Dispatching forgot-password email to Google Apps Script for ${user.email}...`);
-    const emailRes = await fetch(scriptURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({
-        token: "BIRRAVERDE_2024_SECURE",
-        name: user.name,
-        email: user.email,
-        phone: "Recuperación",
-        people: "1",
-        duration: "0",
-        date: "2026-01-01",
-        time: "00:00",
-        notes: "Recuperación de contraseña",
-        subject: 'Recuperar Contraseña - Birraverde Studio',
-        html: emailHtml,
-        htmlAdmin: 'Nueva solicitud de restablecimiento de contraseña para ' + user.email,
-        textAdmin: 'Solicitud de contraseña.'
-      })
+    // Correo de recuperación al usuario
+    await sendEmail({
+      to: user.email,
+      subject: 'Recuperar Contraseña - Birraverde Studio',
+      html: emailHtml
     });
-    const resText = await emailRes.text();
-    console.log(`[EMAIL] Google Apps Script response status: ${emailRes.status}. Body: ${resText}`);
 
     res.json({ success: true, message: 'Si el correo está registrado, recibirás un enlace de recuperación pronto.' });
   } catch (e) {
@@ -1407,32 +1421,12 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
             ${filesHtml}
           </div>`;
 
-        const scriptURL = process.env.GOOGLE_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
-
         // 1. Enviar correo al Host/Convocante
-        console.log(`[EMAIL] Dispatching host meeting email to Google Apps Script for host ${req.user.email}...`);
-        const hostRes = await fetch(scriptURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({
-            token: "BIRRAVERDE_2024_SECURE",
-            name: req.user.name,
-            email: req.user.email,
-            phone: "Interno",
-            people: "1",
-            duration,
-            date,
-            time,
-            notes: notes || '',
-            subject: `Reunión Interna Convocada: ${subject}`,
-            subjectAdmin: `Reunión Interna: ${subject}`,
-            html: createHtml(req.user.name, hostDetails),
-            htmlAdmin: createHtml(req.user.name, hostDetails),
-            textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
-          })
+        await sendEmail({
+          to: req.user.email,
+          subject: `Reunión Interna Convocada: ${subject}`,
+          html: createHtml(req.user.name, hostDetails)
         });
-        const hostResText = await hostRes.text();
-        console.log(`[EMAIL] Google Apps Script host response status: ${hostRes.status}. Body: ${hostResText}`);
 
         // 2. Enviar correo a cada invitado
         for (const guest of invitedUsers) {
@@ -1448,28 +1442,11 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
               ${filesHtml}
             </div>`;
 
-          console.log(`[EMAIL] Dispatching guest meeting email to Google Apps Script for guest ${guest.email}...`);
-          const guestRes = await fetch(scriptURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-              token: "BIRRAVERDE_2024_SECURE",
-              name: guest.name,
-              email: guest.email,
-              phone: "Interno",
-              people: "1",
-              duration,
-              date,
-              time,
-              notes: notes || '',
-              subject: `Invitación a Reunión Interna: ${subject}`,
-              html: createHtml(guest.name, guestDetails),
-              skipAdminEmail: true,
-              textAdmin: `Reunión interna: ${subject} el ${formattedDate}`
-            })
+          await sendEmail({
+            to: guest.email,
+            subject: `Invitación a Reunión Interna: ${subject}`,
+            html: createHtml(guest.name, guestDetails)
           });
-          const guestResText = await guestRes.text();
-          console.log(`[EMAIL] Google Apps Script guest response status: ${guestRes.status}. Body: ${guestResText}`);
         }
       } catch (err) {
         console.error('Error enviando correos de reunión interna:', err);
