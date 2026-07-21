@@ -24,24 +24,35 @@ const ADMIN_EMAIL = 'birraverdefilms@gmail.com';
  */
 const sendEmail = async ({ to, subject, html }) => {
   if (!resendClient) {
-    console.warn('[EMAIL] RESEND_API_KEY no configurada. El correo NO fue enviado.');
+    console.warn('[EMAIL] SENDGRID_API_KEY no configurada. El correo NO fue enviado.');
     console.log(`[EMAIL] (simulado) To: ${to} | Subject: ${subject}`);
     return;
   }
+
+  // Normalizar `to`: si es string con comas, convertir a array limpio
+  const normalizeRecipients = (input) => {
+    if (Array.isArray(input)) {
+      return input.flatMap(e => e.split(',').map(s => s.trim())).filter(Boolean);
+    }
+    return input.split(',').map(s => s.trim()).filter(Boolean);
+  };
+
+  const recipients = normalizeRecipients(to);
+
   try {
     const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
-      to: Array.isArray(to) ? to : [to],
+      to: recipients,
       subject,
       html
     });
     if (error) {
-      console.error(`[EMAIL] Error Resend al enviar a ${to}:`, error);
+      console.error(`[EMAIL] Error Resend al enviar a ${recipients.join(', ')}:`, error);
     } else {
-      console.log(`[EMAIL] Correo enviado vía Resend a ${to}. ID: ${data?.id}`);
+      console.log(`[EMAIL] Correo enviado vía Resend a ${recipients.join(', ')}. ID: ${data?.id}`);
     }
   } catch (err) {
-    console.error(`[EMAIL] Excepción al enviar correo vía Resend a ${to}:`, err);
+    console.error(`[EMAIL] Excepción al enviar correo vía Resend a ${recipients.join(', ')}:`, err);
   }
 };
 
