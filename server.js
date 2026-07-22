@@ -58,25 +58,20 @@ const sendEmail = async ({ to, subject, html }) => {
 
 /**
  * Crea un evento en Google Calendar vía Apps Script.
- * @param {object} opts - { title, date, time, duration, description, guests }
+ * @param {object} payloadData - Datos del evento (compatibles con scripts nuevos y viejos)
  */
-const createCalendarEvent = async ({ title, date, time, duration, description, guests }) => {
+const createCalendarEvent = async (payloadData) => {
   const FALLBACK_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
   const scriptURL = process.env.GOOGLE_SCRIPT_URL || FALLBACK_SCRIPT_URL;
 
-  console.log(`[CALENDAR] Intentando crear evento: "${title}" el ${date} a las ${time}`);
+  console.log(`[CALENDAR] Intentando crear evento: "${payloadData.title || payloadData.name}" el ${payloadData.date} a las ${payloadData.time}`);
   console.log(`[CALENDAR] Usando URL: ${scriptURL.substring(0, 80)}...`);
 
   try {
     const payload = {
       token: 'BIRRAVERDE_2024_SECURE',
-      title,
-      date,
-      time,
-      duration,
-      description: description || ''
+      ...payloadData
     };
-    if (guests) payload.guests = guests;
 
     const res = await fetch(scriptURL, {
       method: 'POST',
@@ -981,12 +976,17 @@ app.post('/api/booking', async (req, res) => {
 
         // Crear evento en Google Calendar
         await createCalendarEvent({
-          title: `Sesión Birraverde - ${name}`,
+          title: `Reserva Birraverde - ${name}`,
           date,
           time,
           duration: Number(duration),
           description: `Cliente: ${name}\nTel: ${phone}\nPersonas: ${people}\nNotas: ${notes || 'Sin notas'}`,
-          guests: email
+          guests: email,
+          // Compatibilidad con script viejo:
+          name,
+          phone,
+          notes: notes || '',
+          email
         });
       } catch (err) {
         console.error('Error en proceso de email/calendario:', err);
@@ -1517,7 +1517,12 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
           time,
           duration: Number(duration),
           description: `Convocante: ${req.user.name}\nInvitados: ${invitedNamesList}\nNotas: ${notes || 'Sin notas'}`,
-          guests: allGuests
+          guests: allGuests,
+          // Compatibilidad con script viejo:
+          name: req.user.name,
+          phone: 'Interno',
+          notes: notes || '',
+          email: allGuests
         });
       } catch (err) {
         console.error('Error enviando correos/calendario de reunión interna:', err);
