@@ -90,6 +90,40 @@ const createCalendarEvent = async (payloadData) => {
   }
 };
 
+/**
+ * Elimina un evento en Google Calendar vía Apps Script.
+ * @param {object} payloadData - Datos para identificar y borrar el evento
+ */
+const deleteCalendarEvent = async (payloadData) => {
+  const FALLBACK_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+  const scriptURL = process.env.GOOGLE_SCRIPT_URL || FALLBACK_SCRIPT_URL;
+
+  console.log(`[CALENDAR] Intentando borrar evento: "${payloadData.title}" el ${payloadData.date} a las ${payloadData.time}`);
+
+  try {
+    const payload = {
+      token: 'BIRRAVERDE_2024_SECURE',
+      action: 'delete',
+      ...payloadData
+    };
+
+    const res = await fetch(scriptURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    console.log(`[CALENDAR] Respuesta del script de borrado (status ${res.status}): ${text}`);
+    if (text.startsWith('DELETED') || text === 'OK') {
+      console.log(`[CALENDAR] ✅ Evento borrado correctamente.`);
+    } else {
+      console.error(`[CALENDAR] ❌ El script devolvió un error al borrar:`, text);
+    }
+  } catch (err) {
+    console.error('[CALENDAR] ❌ Excepción al llamar al Apps Script para borrar:', err.message);
+  }
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -1247,11 +1281,29 @@ app.get('/api/admin/bookings', authenticateToken, requireRole(['admin', 'worker'
 app.delete('/api/admin/bookings/:id', authenticateToken, requireRole(['admin']), async (req, res) => {
   try {
     const bookingId = req.params.id;
+    const booking = await dbGetBookingById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ error: 'Reserva no encontrada.' });
+    }
     const deleted = await dbDeleteBooking(bookingId);
     if (!deleted) {
       return res.status(404).json({ error: 'Reserva no encontrada.' });
     }
     res.json({ success: true, message: 'Reserva eliminada con éxito.' });
+
+    // Borrar de Google Calendar asíncronamente
+    (async () => {
+      try {
+        await deleteCalendarEvent({
+          title: `Reserva Birraverde - ${booking.name}`,
+          date: booking.date,
+          time: booking.time,
+          duration: Number(booking.duration)
+        });
+      } catch (calErr) {
+        console.error('Error al intentar borrar el evento de la reserva del calendario:', calErr);
+      }
+    })();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar reserva.' });
@@ -1594,6 +1646,20 @@ app.delete('/api/admin/meetings/:id', authenticateToken, requireRole(['admin']),
     }
 
     res.json({ success: true, message: 'Reunión interna eliminada con éxito.' });
+
+    // Borrar de Google Calendar asíncronamente
+    (async () => {
+      try {
+        await deleteCalendarEvent({
+          title: `Reunión Interna: ${meeting.subject}`,
+          date: meeting.date,
+          time: meeting.time,
+          duration: Number(meeting.duration)
+        });
+      } catch (calErr) {
+        console.error('Error al intentar borrar el evento de la reunión del calendario:', calErr);
+      }
+    })();
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al eliminar reunión.' });

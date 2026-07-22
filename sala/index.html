@@ -321,8 +321,7 @@
 
             const renderTimeSlots = (ds) => {
                 timeSlotsGrid.innerHTML = '';
-                const local = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
-                const all = [...serverBookings, ...local];
+                const all = serverBookings;
                 
                 for (let h = 8; h <= 20; h++) {
                     const t = `${String(h).padStart(2, '0')}:00`;

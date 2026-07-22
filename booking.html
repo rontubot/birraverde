@@ -159,6 +159,7 @@
 
             let currentDate = new Date();
             let selectedDay = null;
+            let serverBookings = [];
 
             // Lógica para múltiples correos electrónicos (Chips)
             const emailInput = document.getElementById('emailInput');
@@ -267,6 +268,26 @@
                 });
             });
 
+            const timeToMinutes = (t) => {
+                const [h, m] = t.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const fetchServerBookings = async () => {
+                try {
+                    const response = await fetch('/api/bookings');
+                    if (response.ok) {
+                        serverBookings = await response.json();
+                        if (selectedDay) {
+                            const y = currentDate.getFullYear();
+                            const m = currentDate.getMonth();
+                            const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(selectedDay).padStart(2, '0')}`;
+                            renderTimeSlots(ds);
+                        }
+                    }
+                } catch (e) { console.error(e); }
+            };
+
             const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
             const renderCalendar = () => {
@@ -313,11 +334,17 @@
 
             const renderTimeSlots = (dateString) => {
                 timeSlotsGrid.innerHTML = '';
-                const bookings = JSON.parse(localStorage.getItem('birraverde_bookings') || '[]');
                 
                 for (let hour = 8; hour <= 20; hour++) {
                     const time = `${String(hour).padStart(2, '0')}:00`;
-                    const isOccupied = bookings.some(b => b.date === dateString && b.time === time);
+                    const currentMins = timeToMinutes(time);
+                    
+                    const isOccupied = serverBookings.some(b => {
+                        if (b.date !== dateString) return false;
+                        const start = timeToMinutes(b.time);
+                        const end = start + (Number(b.duration) * 60);
+                        return currentMins >= start && currentMins < end;
+                    });
                     
                     const slot = document.createElement('div');
                     slot.innerText = time;
@@ -445,6 +472,7 @@
 
             renderCalendar();
             loadRecent();
+            fetchServerBookings();
 
             if (typeof gsap !== 'undefined') {
                 gsap.to('.reveal', {
