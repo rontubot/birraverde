@@ -167,19 +167,6 @@
             const emailErrorMsg = document.getElementById('email-error-msg');
             let emails = [];
 
-            // Autofill client info if logged in
-            const userStr = localStorage.getItem('birraverde_user');
-            if (userStr) {
-                try {
-                    const u = JSON.parse(userStr);
-                    if (u.name) document.getElementById('name').value = u.name;
-                    if (u.email) {
-                        emails.push(u.email);
-                    }
-                } catch (e) {
-                    console.error('Error autofilling user data:', e);
-                }
-            }
 
             const renderChips = () => {
                 // Eliminar chips existentes
@@ -198,6 +185,21 @@
 
                 hiddenEmailInput.value = emails.join(', ');
             };
+
+            // Autofill client info if logged in
+            const userStr = localStorage.getItem('birraverde_user');
+            if (userStr) {
+                try {
+                    const u = JSON.parse(userStr);
+                    if (u.name) document.getElementById('name').value = u.name;
+                    if (u.email) {
+                        emails.push(u.email);
+                        renderChips(); // Mostrar el chip del correo desde el inicio
+                    }
+                } catch (e) {
+                    console.error('Error autofilling user data:', e);
+                }
+            }
 
             const addEmail = (val) => {
                 const trimmed = val.trim().toLowerCase();
