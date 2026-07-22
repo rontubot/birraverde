@@ -61,11 +61,12 @@ const sendEmail = async ({ to, subject, html }) => {
  * @param {object} opts - { title, date, time, duration, description, guests }
  */
 const createCalendarEvent = async ({ title, date, time, duration, description, guests }) => {
-  const scriptURL = process.env.GOOGLE_SCRIPT_URL;
-  if (!scriptURL) {
-    console.warn('[CALENDAR] GOOGLE_SCRIPT_URL no configurada. El evento NO fue creado.');
-    return;
-  }
+  const FALLBACK_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOiS6qNNUCsUOlFdPWkOhndnIyWMb7izoVvUJScw-U-1QX0irbPnUxhSultjyfZvWu/exec';
+  const scriptURL = process.env.GOOGLE_SCRIPT_URL || FALLBACK_SCRIPT_URL;
+
+  console.log(`[CALENDAR] Intentando crear evento: "${title}" el ${date} a las ${time}`);
+  console.log(`[CALENDAR] Usando URL: ${scriptURL.substring(0, 80)}...`);
+
   try {
     const payload = {
       token: 'BIRRAVERDE_2024_SECURE',
@@ -83,13 +84,14 @@ const createCalendarEvent = async ({ title, date, time, duration, description, g
       body: JSON.stringify(payload)
     });
     const text = await res.text();
+    console.log(`[CALENDAR] Respuesta del script (status ${res.status}): ${text}`);
     if (text === 'OK') {
-      console.log(`[CALENDAR] Evento creado: "${title}" el ${date} a las ${time}`);
+      console.log(`[CALENDAR] ✅ Evento creado correctamente.`);
     } else {
-      console.error(`[CALENDAR] Error al crear evento en Google Calendar:`, text);
+      console.error(`[CALENDAR] ❌ El script devolvió un error:`, text);
     }
   } catch (err) {
-    console.error('[CALENDAR] Excepción al llamar al Apps Script:', err);
+    console.error('[CALENDAR] ❌ Excepción al llamar al Apps Script:', err.message);
   }
 };
 
