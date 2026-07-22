@@ -56,6 +56,43 @@ const sendEmail = async ({ to, subject, html }) => {
   }
 };
 
+/**
+ * Crea un evento en Google Calendar vía Apps Script.
+ * @param {object} opts - { title, date, time, duration, description, guests }
+ */
+const createCalendarEvent = async ({ title, date, time, duration, description, guests }) => {
+  const scriptURL = process.env.GOOGLE_SCRIPT_URL;
+  if (!scriptURL) {
+    console.warn('[CALENDAR] GOOGLE_SCRIPT_URL no configurada. El evento NO fue creado.');
+    return;
+  }
+  try {
+    const payload = {
+      token: 'BIRRAVERDE_2024_SECURE',
+      title,
+      date,
+      time,
+      duration,
+      description: description || ''
+    };
+    if (guests) payload.guests = guests;
+
+    const res = await fetch(scriptURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    const text = await res.text();
+    if (text === 'OK') {
+      console.log(`[CALENDAR] Evento creado: "${title}" el ${date} a las ${time}`);
+    } else {
+      console.error(`[CALENDAR] Error al crear evento en Google Calendar:`, text);
+    }
+  } catch (err) {
+    console.error('[CALENDAR] Excepción al llamar al Apps Script:', err);
+  }
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -939,8 +976,18 @@ app.post('/api/booking', async (req, res) => {
           subject: `Nueva Reserva: ${name} — ${formattedDate}`,
           html: createHtml('Administrador', adminDetails)
         });
+
+        // Crear evento en Google Calendar
+        await createCalendarEvent({
+          title: `Sesión Birraverde - ${name}`,
+          date,
+          time,
+          duration: Number(duration),
+          description: `Cliente: ${name}\nTel: ${phone}\nPersonas: ${people}\nNotas: ${notes || 'Sin notas'}`,
+          guests: email
+        });
       } catch (err) {
-        console.error('Error en proceso de email:', err);
+        console.error('Error en proceso de email/calendario:', err);
       }
     })();
 
@@ -1459,8 +1506,19 @@ app.post('/api/reunion-interna', authenticateToken, requireRole(['admin', 'worke
             html: createHtml(guest.name, guestDetails)
           });
         }
+
+        // Crear evento en Google Calendar para la reunión interna
+        const allGuests = [req.user.email, ...invitedUsers.map(u => u.email)].join(',');
+        await createCalendarEvent({
+          title: `Reunión Interna: ${subject}`,
+          date,
+          time,
+          duration: Number(duration),
+          description: `Convocante: ${req.user.name}\nInvitados: ${invitedNamesList}\nNotas: ${notes || 'Sin notas'}`,
+          guests: allGuests
+        });
       } catch (err) {
-        console.error('Error enviando correos de reunión interna:', err);
+        console.error('Error enviando correos/calendario de reunión interna:', err);
       }
     })();
 
